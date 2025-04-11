@@ -1,7 +1,7 @@
 name: CI
 env:
   DEBUG: napi:*
-  APP_NAME: package-template
+  APP_NAME: berry
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
 permissions:
@@ -29,27 +29,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'yarn'
-
+          cache: yarn
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
-
       - name: Install dependencies
         run: yarn install
-
       - name: ESLint
         run: yarn lint
-
       - name: Cargo fmt
         run: cargo fmt -- --check
-
       - name: Clippy
         run: cargo clippy
   build:
@@ -173,7 +167,7 @@ jobs:
           version: '14.2'
           memory: 8G
           cpu_count: 3
-          environment_variables: 'DEBUG RUSTUP_IO_THREADS'
+          environment_variables: DEBUG RUSTUP_IO_THREADS
           shell: bash
           run: |
             sudo pkg install -y -f curl node libnghttp2 npm

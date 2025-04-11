@@ -1,3 +1,3 @@
-# `@napi-rs/package-template-linux-x64-musl`
+# `berry-linux-x64-musl`
 
-This is the **x86_64-unknown-linux-musl** binary for `@napi-rs/package-template`
+This is the **x86_64-unknown-linux-musl** binary for `berry`
