@@ -1,3 +1,5 @@
+//! A simple yarn lockfile parser
+//! WIP - not yet functional
 #![deny(clippy::all)]
 
 use napi_derive::napi;

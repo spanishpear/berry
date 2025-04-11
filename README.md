@@ -1,23 +1,9 @@
-# `@napi-rs/package-template`
+# Berry
 
-![https://github.com/napi-rs/package-template/actions](https://github.com/napi-rs/package-template/workflows/CI/badge.svg)
+Coming soon :)
 
-> Template project for writing node packages with napi-rs.
-
-# Usage
-
-1. Click **Use this template**.
-2. **Clone** your project.
-3. Run `yarn install` to install dependencies.
-4. Run `npx napi rename -n [name]` command under the project folder to rename your package.
-
-## Install this test package
-
-```
-yarn add @napi-rs/package-template
-```
-
-## Support matrix
+---
+Template README below
 
 ### Operating Systems
 
