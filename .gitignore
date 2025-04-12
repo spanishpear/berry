@@ -128,3 +128,6 @@ dist
 
 # for releases
 npm/
+
+# local
+local-notes.md
