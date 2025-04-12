@@ -50,6 +50,7 @@ jobs:
         run: cargo --locked clippy -- -D warnings
   test:
     name: Rust tests
+    if: ${{ github.event.commits.some(commit => commit.modified.some(file => file.endsWith('.rs')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
