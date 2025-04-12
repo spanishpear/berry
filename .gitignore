@@ -125,3 +125,6 @@ dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# for releases
+npm/

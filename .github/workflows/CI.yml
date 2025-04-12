@@ -157,6 +157,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+      - name: Create npm dirs
+        run: yarn napi create-npm-dirs
       - name: Move artifacts
         run: yarn artifacts
       - name: List packages
