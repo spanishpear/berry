@@ -1,5 +1,4 @@
-extern crate napi_build;
-
+//! Build script for the `berry` crate.
 fn main() {
   napi_build::setup();
 }
