@@ -44,9 +44,9 @@ jobs:
       - name: Oxlint
         run: yarn lint
       - name: Cargo fmt
-        run: cargo fmt --locked -- --check
+        run: cargo --locked fmt -- --check
       - name: Clippy
-        run: cargo clippy --locked -- -D warnings
+        run: cargo --locked clippy -- -D warnings
   test:
     name: Rust tests
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
       - name: Compile
         run: cargo check --locked
       - name: Test
-        run: cargo nextest
+        run: cargo --locked nextest
   build:
     strategy:
       fail-fast: false
