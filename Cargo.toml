@@ -7,7 +7,31 @@ repository = "https://github.com/spanishpear/berry"
 description = "A simple yarn berry lockfile parser"
 license = "MIT OR Apache-2.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# https://doc.rust-lang.org/rustc/lints/groups.html
+[lints.rust]
+warnings = "warn"
+deprecated-safe = "warn"
+future-incompatible = "warn"
+keyword-idents = "warn"
+let-underscore = "warn"
+nonstandard-style = "warn"
+refining-impl-trait = "warn"
+rust-2024-compatibility = "warn"
+unused = "warn"
+
+# https://github.com/rust-lang/rust-clippy/?tab=readme-ov-file#clippy
+[lints.clippy]
+all = { level = "warn", priority = -1 } # default is "warn/deny", as it contains multiple groups
+cargo = { level = "warn", priority = -1 } # default is "allow"
+complexity = { level = "warn", priority = -1 } # default is "warn"
+correctness = { level = "deny", priority = -1 } # default is "deny"
+nursery = { level = "warn", priority = -1 } # default is "allow"
+pedantic = { level = "warn", priority = -1 } # default is "allow"
+perf = { level = "warn", priority = -1 } # default is "warn"
+restriction = { level = "warn", priority = -1 } # default is "allow"
+style = { level = "warn", priority = -1 } # default is "warn"
+suspicious = { level = "warn", priority = -1 } # default is "warn"
+implicit_return = "allow" # Prefer idiomatic rust
 
 [lib]
 crate-type = ["cdylib"]
