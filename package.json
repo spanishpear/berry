@@ -82,6 +82,7 @@
 			"ts": "module"
 		},
 		"timeout": "2m",
+		"workerThreads": false,
 		"environmentVariables": {
 			"TS_NODE_PROJECT": "./__test__/tsconfig.json"
 		},
