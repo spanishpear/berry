@@ -6,6 +6,8 @@ version = "0.1.0"
 repository = "https://github.com/spanishpear/berry"
 description = "A simple yarn berry lockfile parser"
 license = "MIT OR Apache-2.0"
+keywords = ["yarn", "berry", "lockfile", "parser", "utils", "nodejs", "napi", "n-api"]
+categories = ["parsing", "parser-implementations"]
 
 # https://doc.rust-lang.org/rustc/lints/groups.html
 [lints.rust]
@@ -21,17 +23,15 @@ unused = "warn"
 
 # https://github.com/rust-lang/rust-clippy/?tab=readme-ov-file#clippy
 [lints.clippy]
+# set all the lints to warn - will fail in CI
+# Other categories are default warn, so are not listed
 all = { level = "warn", priority = -1 } # default is "warn/deny", as it contains multiple groups
 cargo = { level = "warn", priority = -1 } # default is "allow"
-complexity = { level = "warn", priority = -1 } # default is "warn"
-correctness = { level = "deny", priority = -1 } # default is "deny"
 nursery = { level = "warn", priority = -1 } # default is "allow"
 pedantic = { level = "warn", priority = -1 } # default is "allow"
-perf = { level = "warn", priority = -1 } # default is "warn"
-restriction = { level = "warn", priority = -1 } # default is "allow"
-style = { level = "warn", priority = -1 } # default is "warn"
-suspicious = { level = "warn", priority = -1 } # default is "warn"
+# Now, allow ones we want to ignore
 implicit_return = "allow" # Prefer idiomatic rust
+must_use_candidate = "allow"
 
 [lib]
 crate-type = ["cdylib"]
