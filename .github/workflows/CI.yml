@@ -142,7 +142,9 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
+        run: |
+          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
+          echo "$?"
   publish:
     name: Publish
     runs-on: ubuntu-latest
