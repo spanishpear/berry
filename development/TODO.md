@@ -1,0 +1,2 @@
+- [ ] - semver can have an ||
+- [ ] - fix public api lmao, should the package struct take &str?

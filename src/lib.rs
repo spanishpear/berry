@@ -1,11 +1,17 @@
 //! A simple yarn lockfile parser
-//! WIP - not yet functional
+//! Note - this is a slim public API file.
 
 use napi_derive::napi;
 
-#[napi]
-pub const fn plus_100(input: u32) -> u32 {
-  input + 100
-}
+/// Note - private modules not re-exported for usage
+mod ident;
+mod locator;
+mod lockfile;
+mod metadata;
+mod package;
+mod parse;
 
-// test
+#[napi]
+pub const fn parse(file_contents: String) -> String {
+  file_contents
+}

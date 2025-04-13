@@ -54,6 +54,7 @@ napi = { version = "3.0.0-alpha", default-features = false, features = [
 napi-derive = { version = "3.0.0-alpha", default-features = false, features = [
   "type-def",
 ] }
+nom = "8.0.0"
 
 [build-dependencies]
 napi-build = "2.0.1"
