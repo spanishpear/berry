@@ -74,23 +74,23 @@ function requireNative() {
 	} else if (process.platform === 'android') {
 		if (process.arch === 'arm64') {
 			try {
-				return require('./berry.android-arm64.node')
+				return require('./index.android-arm64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-android-arm64')
+				return require('@berry/repo-android-arm64')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm') {
 			try {
-				return require('./berry.android-arm-eabi.node')
+				return require('./index.android-arm-eabi.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-android-arm-eabi')
+				return require('@berry/repo-android-arm-eabi')
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -100,34 +100,34 @@ function requireNative() {
 	} else if (process.platform === 'win32') {
 		if (process.arch === 'x64') {
 			try {
-				return require('./berry.win32-x64-msvc.node')
+				return require('./index.win32-x64-msvc.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-win32-x64-msvc')
+				return require('@berry/repo-win32-x64-msvc')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'ia32') {
 			try {
-				return require('./berry.win32-ia32-msvc.node')
+				return require('./index.win32-ia32-msvc.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-win32-ia32-msvc')
+				return require('@berry/repo-win32-ia32-msvc')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm64') {
 			try {
-				return require('./berry.win32-arm64-msvc.node')
+				return require('./index.win32-arm64-msvc.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-win32-arm64-msvc')
+				return require('@berry/repo-win32-arm64-msvc')
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -136,35 +136,35 @@ function requireNative() {
 		}
 	} else if (process.platform === 'darwin') {
 		try {
-			return require('./berry.darwin-universal.node')
+			return require('./index.darwin-universal.node')
 		} catch (e) {
 			loadErrors.push(e)
 		}
 		try {
-			return require('@berry/core-darwin-universal')
+			return require('@berry/repo-darwin-universal')
 		} catch (e) {
 			loadErrors.push(e)
 		}
 
 		if (process.arch === 'x64') {
 			try {
-				return require('./berry.darwin-x64.node')
+				return require('./index.darwin-x64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-darwin-x64')
+				return require('@berry/repo-darwin-x64')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm64') {
 			try {
-				return require('./berry.darwin-arm64.node')
+				return require('./index.darwin-arm64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-darwin-arm64')
+				return require('@berry/repo-darwin-arm64')
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -174,23 +174,23 @@ function requireNative() {
 	} else if (process.platform === 'freebsd') {
 		if (process.arch === 'x64') {
 			try {
-				return require('./berry.freebsd-x64.node')
+				return require('./index.freebsd-x64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-freebsd-x64')
+				return require('@berry/repo-freebsd-x64')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm64') {
 			try {
-				return require('./berry.freebsd-arm64.node')
+				return require('./index.freebsd-arm64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-freebsd-arm64')
+				return require('@berry/repo-freebsd-arm64')
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -201,23 +201,23 @@ function requireNative() {
 		if (process.arch === 'x64') {
 			if (isMusl()) {
 				try {
-					return require('./berry.linux-x64-musl.node')
+					return require('./index.linux-x64-musl.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-x64-musl')
+					return require('@berry/repo-linux-x64-musl')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./berry.linux-x64-gnu.node')
+					return require('./index.linux-x64-gnu.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-x64-gnu')
+					return require('@berry/repo-linux-x64-gnu')
 				} catch (e) {
 					loadErrors.push(e)
 				}
@@ -225,23 +225,23 @@ function requireNative() {
 		} else if (process.arch === 'arm64') {
 			if (isMusl()) {
 				try {
-					return require('./berry.linux-arm64-musl.node')
+					return require('./index.linux-arm64-musl.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-arm64-musl')
+					return require('@berry/repo-linux-arm64-musl')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./berry.linux-arm64-gnu.node')
+					return require('./index.linux-arm64-gnu.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-arm64-gnu')
+					return require('@berry/repo-linux-arm64-gnu')
 				} catch (e) {
 					loadErrors.push(e)
 				}
@@ -249,23 +249,23 @@ function requireNative() {
 		} else if (process.arch === 'arm') {
 			if (isMusl()) {
 				try {
-					return require('./berry.linux-arm-musleabihf.node')
+					return require('./index.linux-arm-musleabihf.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-arm-musleabihf')
+					return require('@berry/repo-linux-arm-musleabihf')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./berry.linux-arm-gnueabihf.node')
+					return require('./index.linux-arm-gnueabihf.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-arm-gnueabihf')
+					return require('@berry/repo-linux-arm-gnueabihf')
 				} catch (e) {
 					loadErrors.push(e)
 				}
@@ -273,46 +273,46 @@ function requireNative() {
 		} else if (process.arch === 'riscv64') {
 			if (isMusl()) {
 				try {
-					return require('./berry.linux-riscv64-musl.node')
+					return require('./index.linux-riscv64-musl.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-riscv64-musl')
+					return require('@berry/repo-linux-riscv64-musl')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./berry.linux-riscv64-gnu.node')
+					return require('./index.linux-riscv64-gnu.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/core-linux-riscv64-gnu')
+					return require('@berry/repo-linux-riscv64-gnu')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			}
 		} else if (process.arch === 'ppc64') {
 			try {
-				return require('./berry.linux-ppc64-gnu.node')
+				return require('./index.linux-ppc64-gnu.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-linux-ppc64-gnu')
+				return require('@berry/repo-linux-ppc64-gnu')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 's390x') {
 			try {
-				return require('./berry.linux-s390x-gnu.node')
+				return require('./index.linux-s390x-gnu.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/core-linux-s390x-gnu')
+				return require('@berry/repo-linux-s390x-gnu')
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -328,7 +328,7 @@ nativeBinding = requireNative()
 
 if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
 	try {
-		nativeBinding = require('./berry.wasi.cjs')
+		nativeBinding = require('./index.wasi.cjs')
 	} catch (err) {
 		if (process.env.NAPI_RS_FORCE_WASI) {
 			loadErrors.push(err)
@@ -336,7 +336,7 @@ if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
 	}
 	if (!nativeBinding) {
 		try {
-			nativeBinding = require('@berry/core-wasm32-wasi')
+			nativeBinding = require('@berry/repo-wasm32-wasi')
 		} catch (err) {
 			if (process.env.NAPI_RS_FORCE_WASI) {
 				loadErrors.push(err)
@@ -356,5 +356,5 @@ if (!nativeBinding) {
 	throw new Error(`Failed to load native binding`)
 }
 
-const { plus100 } = nativeBinding
-export { plus100 }
+const { parse } = nativeBinding
+export { parse }

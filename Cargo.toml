@@ -1,25 +1,32 @@
-[package]
+
+[workspace]
+resolver = "2"
+members = [
+  "crates/*",
+]
+
+[workspace.package]
 authors = ["Shrey Somaiya"]
 categories = ["parsing", "parser-implementations"]
-description = "A simple yarn berry lockfile parser"
+# description = "A simple yarn berry lockfile parser"
 edition = "2024"
-keywords = [
-  "yarn",
-  "berry",
-  "lockfile",
-  "parser",
-  "utils",
-  "nodejs",
-  "napi",
-  "n-api",
-]
+# keywords = [
+#   "yarn",
+#   "berry",
+#   "lockfile",
+#   "parser",
+#   "utils",
+#   "nodejs",
+#   "napi",
+#   "n-api",
+# ]
 license = "MIT OR Apache-2.0"
-name = "berry"
+# name = "berry"
 repository = "https://github.com/spanishpear/berry"
-version = "0.1.0"
+# version = "0.1.0"
 
 # https://doc.rust-lang.org/rustc/lints/groups.html
-[lints.rust]
+[workspace.lints.rust]
 deprecated-safe         = "warn"
 future-incompatible     = "warn"
 keyword-idents          = "warn"
@@ -31,7 +38,7 @@ unused                  = "warn"
 warnings                = "warn"
 
 # https://github.com/rust-lang/rust-clippy/?tab=readme-ov-file#clippy
-[lints.clippy]
+[workspace.lints.clippy]
 # set all the lints to warn - will fail in CI
 # Other categories are default warn, so are not listed
 all      = { level = "warn", priority = -1 } # default is "warn/deny", as it contains multiple groups
@@ -42,12 +49,8 @@ pedantic = { level = "warn", priority = -1 } # default is "allow"
 implicit_return    = "allow" # Prefer idiomatic rust
 must_use_candidate = "allow"
 
-[lib]
-# cdylib is a dynamic library e.g. that allows us to be loaded by Node.js
-# lib is a static library, e.g. that allows us to be linked into other Rust code
-crate-type = ["cdylib", "lib"]
 
-[dependencies]
+[workspace.dependencies]
 # https://nodejs.org/api/n-api.html#node-api-version-matrix
 # support node 18-22
 napi = { version = "3.0.0-alpha", default-features = false, features = [
@@ -57,9 +60,6 @@ napi-derive = { version = "3.0.0-alpha", default-features = false, features = [
   "type-def",
 ] }
 nom = "8.0.0"
-
-[build-dependencies]
-napi-build = "2.0.1"
 
 [profile.release]
 codegen-units = 1
