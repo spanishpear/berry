@@ -1,0 +1,13 @@
+[package]
+authors.workspace    = true
+categories.workspace = true
+edition.workspace    = true
+license.workspace    = true
+name                 = "berry-core"
+repository.workspace = true
+version              = "0.1.0"
+
+[dependencies]
+
+[lints]
+workspace = true
