@@ -1,5 +1,6 @@
 /// The start of the metadata block
 /// Typically at the start of the file
+#[derive(Debug)]
 pub struct Metadata {
   version: String,
   cache_key: String,

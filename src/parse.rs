@@ -9,6 +9,10 @@ use nom::{
 use crate::lockfile::Lockfile;
 
 /// Parse a yarn lockfile header
+/// It matches explicitly the yarn lockfile header comments
+/// and the newline that follows
+///
+/// NOTE: A faster approach **could** be to just consume three lines, and not even use nom
 fn parse_yarn_header(input: &str) -> IResult<&str, (&str, &str)> {
   terminated(
     pair(
@@ -26,16 +30,15 @@ fn parse_yarn_header(input: &str) -> IResult<&str, (&str, &str)> {
   .parse(input)
 }
 
+/// Entrypoint for parsing a yarn lockfile
 pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
   let (input, (_, _)) = parse_yarn_header(file_contents)?;
 
   todo!("actually parse the lockfile");
 }
 
-/// Helper combinator to take until the end of the line
-/// Does not consume the newline character
-/// TODO: Do i ever want to support / think about CRLF?
-/// TODO: error handling? typing?
+/// Helper combinator to take an entire line, including the newline character
+#[cfg(test)]
 fn take_whole_line(input: &str) -> IResult<&str, &str> {
   terminated(take_while(|c| !AsChar::is_newline(c)), newline).parse(input)
 }

@@ -43,7 +43,9 @@ implicit_return    = "allow" # Prefer idiomatic rust
 must_use_candidate = "allow"
 
 [lib]
-crate-type = ["cdylib"]
+# cdylib is a dynamic library e.g. that allows us to be loaded by Node.js
+# lib is a static library, e.g. that allows us to be linked into other Rust code
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
 # https://nodejs.org/api/n-api.html#node-api-version-matrix

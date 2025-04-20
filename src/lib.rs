@@ -9,9 +9,14 @@ mod locator;
 mod lockfile;
 mod metadata;
 mod package;
-mod parse;
 
+/// We re-export the parse module, for benchmarking etc
+pub mod parse;
+
+// NOTE: this is in lib.rs for now ,but eventually we may want to separate
+// out the bindings, into its own crate
 #[napi]
 pub const fn parse(file_contents: String) -> String {
+  // wow fast!!!!
   file_contents
 }
