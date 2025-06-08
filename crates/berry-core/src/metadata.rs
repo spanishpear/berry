@@ -1,12 +1,3 @@
-/// The start of the metadata block
-/// Typically at the start of the file
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct Metadata {
-  version: String,
-  cache_key: String,
-}
-
 // https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-core/sources/Manifest.ts#L25
 // note: this smells like option, but realistically it is an extra property
 #[derive(Debug)]

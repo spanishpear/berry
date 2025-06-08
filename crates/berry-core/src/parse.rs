@@ -1,11 +1,11 @@
 use nom::{
   IResult, Parser,
-  bytes::tag,
+  bytes::complete::tag,
   character::complete::newline,
   sequence::{pair, terminated},
 };
 
-use crate::lockfile::Lockfile;
+use crate::{lockfile::Lockfile, lockfile::parse_metadata};
 
 /// Parse a yarn lockfile header
 /// It matches explicitly the yarn lockfile header comments
@@ -31,7 +31,10 @@ fn parse_yarn_header(input: &str) -> IResult<&str, (&str, &str)> {
 
 /// Entrypoint for parsing a yarn lockfile
 pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
-  let (_input, (_, _)) = parse_yarn_header(file_contents)?;
+  let (rest, (_, _)) = parse_yarn_header(file_contents)?;
+  let (_rest, metadata) = parse_metadata(rest)?;
+
+  dbg!(&metadata);
 
   todo!("actually parse the lockfile");
 }
