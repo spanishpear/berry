@@ -24,7 +24,7 @@ pub struct Metadata {
 }
 
 impl Metadata {
-  pub const fn new(version: String, cache_key: String) -> Self {
+  pub fn new(version: String, cache_key: String) -> Self {
     Self { version, cache_key }
   }
 }
