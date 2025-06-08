@@ -6,7 +6,7 @@ use std::collections::HashMap;
 /// The type of link to use for a package
 pub enum LinkType {
   /// The package manager owns the location (typically things within the cache)
-  /// e.g. PnP linker may unplug packages
+  /// e.g. `PnP` linker may unplug packages
   Hard,
 
   /// The package manager doesn't own the location (symlinks, workspaces, etc),
@@ -21,7 +21,7 @@ pub enum LinkType {
 #[allow(dead_code)]
 struct BinaryName(String);
 
-/// https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-fslib/sources/path.ts#L9
+/// <https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-fslib/sources/path.ts#L9>
 /// note - yarn uses internal types to differ between file paths and portable paths
 /// The path to the binary being shipped by a dependency
 #[derive(Debug)]

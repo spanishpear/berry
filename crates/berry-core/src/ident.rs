@@ -23,6 +23,7 @@ struct IdentRange(String);
 
 /// Descriptors are just like idents, except that
 /// they also contain a range and an additional comparator hash.
+///
 /// Yarn's `parseRange` to turn a descriptor string into this data structure,
 ///`makeDescriptor` to create a new one from an ident and a range, or
 ///`stringifyDescriptor` to generate a string representation of it.
