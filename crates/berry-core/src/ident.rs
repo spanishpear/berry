@@ -6,7 +6,7 @@
 struct IdentName(String);
 
 impl IdentName {
-  pub fn new(name: String) -> Self {
+  pub const fn new(name: String) -> Self {
     Self(name)
   }
 
@@ -19,7 +19,7 @@ impl IdentName {
 struct IdentScope(String);
 
 impl IdentScope {
-  pub fn new(scope: String) -> Self {
+  pub const fn new(scope: String) -> Self {
     Self(scope)
   }
 
@@ -46,7 +46,7 @@ impl Ident {
   }
 
   pub fn scope(&self) -> Option<&str> {
-    self.scope.as_ref().map(|s| s.as_str())
+    self.scope.as_ref().map(IdentScope::as_str)
   }
 
   pub fn name(&self) -> &str {
@@ -59,7 +59,7 @@ impl Ident {
 struct IdentRange(String);
 
 impl IdentRange {
-  pub fn new(range: String) -> Self {
+  pub const fn new(range: String) -> Self {
     Self(range)
   }
 
@@ -88,7 +88,7 @@ impl Descriptor {
     }
   }
 
-  pub fn ident(&self) -> &Ident {
+  pub const fn ident(&self) -> &Ident {
     &self.ident
   }
 

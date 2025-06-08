@@ -2,16 +2,16 @@ use nom::IResult;
 use nom::{
   Parser,
   branch::alt,
-  bytes::complete::{tag, take_until, take_while1},
-  character::complete::{alphanumeric1, char, space0},
+  bytes::complete::{is_not, tag, take_until, take_while1},
+  character::complete::{char, newline, space1},
   combinator::{opt, recognize},
-  multi::separated_list0,
-  sequence::{delimited, preceded, tuple},
+  multi::many0,
+  sequence::delimited,
 };
 
 use crate::ident::{Descriptor, Ident};
 use crate::lockfile::{Lockfile, parse_metadata, parse_yarn_header};
-use crate::package::Package;
+use crate::package::{LinkType, Package};
 
 /// Entrypoint for parsing a yarn lockfile
 pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
@@ -35,11 +35,20 @@ pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
 ///   languageName: node
 ///   linkType: hard
 /// ```
-pub fn parse_package_entry(_input: &str) -> IResult<&str, (Descriptor, Package)> {
-  todo!("implement package entry parsing")
+pub fn parse_package_entry(input: &str) -> IResult<&str, (Descriptor, Package)> {
+  let (rest, descriptor) = parse_descriptor_line(input)?;
+  let (rest, _) = newline.parse(rest)?; // consume newline after descriptor
+  let (rest, package) = parse_package_properties(rest)?;
+
+  Ok((rest, (descriptor, package)))
 }
 
 /// Parse a package descriptor line like: "debug@npm:1.0.0":
+///
+/// # Panics
+///
+/// This function will panic if the internal parser logic fails to consume the entire
+/// descriptor string, which should not happen with valid input.
 pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
   let (rest, descriptor_string) =
     delimited(char('"'), take_until("\":"), tag("\":")).parse(input)?;
@@ -62,9 +71,9 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
   assert_eq!(remaining, "", "Should consume entire descriptor string");
 
   // Parse the name part to extract scope and name
-  let ident = if name_part.starts_with('@') {
+  let ident = if let Some(stripped) = name_part.strip_prefix('@') {
     // Scoped package: @babel/code-frame
-    let parts: Vec<&str> = name_part[1..].splitn(2, '/').collect();
+    let parts: Vec<&str> = stripped.splitn(2, '/').collect();
     if parts.len() == 2 {
       Ident::new(Some(format!("@{}", parts[0])), parts[1].to_string())
     } else {
@@ -77,7 +86,7 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
   };
 
   // Combine protocol and range for the descriptor range
-  let full_range = format!("{}:{}", protocol, range_part);
+  let full_range = format!("{protocol}:{range_part}");
 
   Ok((rest, Descriptor::new(ident, full_range)))
 }
@@ -104,8 +113,101 @@ fn parse_protocol(input: &str) -> IResult<&str, &str> {
 }
 
 /// Parse indented key-value properties for a package
-pub fn parse_package_properties(_input: &str) -> IResult<&str, Package> {
-  todo!("implement package properties parsing")
+pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
+  let (rest, properties) = many0(parse_property_line).parse(input)?;
+
+  // Consume an optional trailing newline
+  let (rest, _) = opt(newline).parse(rest)?;
+
+  // Build the package from the parsed properties
+  let mut package = Package::new("unknown".to_string(), LinkType::Hard);
+
+  for (key, value) in properties {
+    match key.as_str() {
+      "version" => {
+        package.version = Some(value.trim_matches('"').to_string());
+      }
+      "resolution" => {
+        package.resolution = Some(value.trim_matches('"').to_string());
+      }
+      "languageName" => {
+        package.language_name = crate::package::LanguageName::new(value.to_string());
+      }
+      "linkType" => {
+        if let Some(link_type) = LinkType::from_str(&value) {
+          package.link_type = link_type;
+        }
+      }
+      "checksum" => {
+        package.checksum = Some(value.to_string());
+      }
+      "dependencies" => {
+        // For now, we'll skip parsing nested dependencies
+        // This will be implemented in a future iteration
+      }
+      _ => {
+        // Skip unknown properties for now
+      }
+    }
+  }
+
+  Ok((rest, package))
+}
+
+/// Parse a single property line with 2-space indentation
+/// Examples:
+/// "  version: 1.0.0"
+/// "  resolution: \"debug@npm:1.0.0\""
+/// "  linkType: hard"
+fn parse_property_line(input: &str) -> IResult<&str, (String, String)> {
+  alt((parse_simple_property, parse_dependencies_block)).parse(input)
+}
+
+/// Parse a simple key-value property line
+fn parse_simple_property(input: &str) -> IResult<&str, (String, String)> {
+  let (rest, (_, key, _, _, value, _)) = (
+    // FIXME: is this part of the spec?
+    tag("  "), // 2-space indentation
+    take_while1(|c: char| c.is_alphanumeric() || c == '_'),
+    char(':'),
+    space1,
+    is_not("\r\n"), // Take everything until newline
+    newline,
+  )
+    .parse(input)?;
+
+  Ok((rest, (key.to_string(), value.to_string())))
+}
+
+/// Parse a dependencies block (for now, just consume it without parsing contents)
+fn parse_dependencies_block(input: &str) -> IResult<&str, (String, String)> {
+  let (rest, (_, _, _)) = (
+    // FIXME: is this part of the spec?
+    tag("  dependencies:"), // 2-space indented dependencies
+    newline,
+    many0(parse_dependency_line), // Parse nested dependency lines
+  )
+    .parse(input)?;
+
+  // For now, return empty dependencies marker
+  Ok((rest, ("dependencies".to_string(), "{}".to_string())))
+}
+
+/// Parse a single dependency line with 4-space indentation
+/// Example: "    ms: 0.6.2"
+fn parse_dependency_line(input: &str) -> IResult<&str, (String, String)> {
+  let (rest, (_, dep_name, _, _, dep_range, _)) = (
+    // FIXME: is this part of the spec?
+    tag("    "), // 4-space indentation for dependencies
+    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+    char(':'),
+    space1,
+    is_not("\r\n"),
+    newline,
+  )
+    .parse(input)?;
+
+  Ok((rest, (dep_name.to_string(), dep_range.to_string())))
 }
 
 #[cfg(test)]
@@ -121,8 +223,10 @@ mod tests {
     let (remaining, descriptor) = result.unwrap();
     assert_eq!(remaining, "");
 
-    // For now, we'll just verify it doesn't panic
-    // TODO: Add more specific assertions once we implement the parsing
+    // Verify the parsed descriptor
+    assert_eq!(descriptor.ident().name(), "debug");
+    assert_eq!(descriptor.ident().scope(), None);
+    assert_eq!(descriptor.range(), "npm:1.0.0");
   }
 
   #[test]
@@ -134,8 +238,13 @@ mod tests {
       result.is_ok(),
       "Should successfully parse scoped package descriptor"
     );
-    let (remaining, _descriptor) = result.unwrap();
+    let (remaining, descriptor) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed descriptor
+    assert_eq!(descriptor.ident().name(), "code-frame");
+    assert_eq!(descriptor.ident().scope(), Some("@babel"));
+    assert_eq!(descriptor.range(), "npm:7.12.11");
   }
 
   #[test]
@@ -147,8 +256,13 @@ mod tests {
       result.is_ok(),
       "Should successfully parse workspace descriptor"
     );
-    let (remaining, _descriptor) = result.unwrap();
+    let (remaining, descriptor) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed descriptor
+    assert_eq!(descriptor.ident().name(), "a");
+    assert_eq!(descriptor.ident().scope(), None);
+    assert_eq!(descriptor.range(), "workspace:packages/a");
   }
 
   #[test]
@@ -164,8 +278,15 @@ mod tests {
       result.is_ok(),
       "Should successfully parse minimal package properties"
     );
-    let (remaining, _package) = result.unwrap();
+    let (remaining, package) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed package properties
+    assert_eq!(package.version, Some("1.0.0".to_string()));
+    assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
+    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.link_type, LinkType::Hard);
+    assert_eq!(package.checksum, None);
   }
 
   #[test]
@@ -183,8 +304,14 @@ mod tests {
       result.is_ok(),
       "Should successfully parse package properties with dependencies"
     );
-    let (remaining, _package) = result.unwrap();
+    let (remaining, package) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed package properties
+    assert_eq!(package.version, Some("1.0.0".to_string()));
+    assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
+    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.link_type, LinkType::Hard);
   }
 
   #[test]
@@ -201,8 +328,15 @@ mod tests {
       result.is_ok(),
       "Should successfully parse package properties with checksum"
     );
-    let (remaining, _package) = result.unwrap();
+    let (remaining, package) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed package properties
+    assert_eq!(package.version, Some("1.0.0".to_string()));
+    assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
+    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.link_type, LinkType::Hard);
+    assert_eq!(package.checksum, Some("edfec8784737afbeea43cc78c3f56c33b88d3e751cc7220ae7a1c5370ff099e7352703275bdb56ea9967f92961231ce0625f8234d82259047303849671153f03".to_string()));
   }
 
   #[test]
@@ -223,8 +357,20 @@ mod tests {
       result.is_ok(),
       "Should successfully parse complete package entry"
     );
-    let (remaining, (_descriptor, _package)) = result.unwrap();
+    let (remaining, (descriptor, package)) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed descriptor
+    assert_eq!(descriptor.ident().name(), "debug");
+    assert_eq!(descriptor.ident().scope(), None);
+    assert_eq!(descriptor.range(), "npm:1.0.0");
+
+    // Verify the parsed package
+    assert_eq!(package.version, Some("1.0.0".to_string()));
+    assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
+    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.link_type, LinkType::Hard);
+    assert_eq!(package.checksum, Some("edfec8784737afbeea43cc78c3f56c33b88d3e751cc7220ae7a1c5370ff099e7352703275bdb56ea9967f92961231ce0625f8234d82259047303849671153f03".to_string()));
   }
 
   #[test]
@@ -242,7 +388,22 @@ mod tests {
       result.is_ok(),
       "Should successfully parse workspace package entry"
     );
-    let (remaining, (_descriptor, _package)) = result.unwrap();
+    let (remaining, (descriptor, package)) = result.unwrap();
     assert_eq!(remaining, "");
+
+    // Verify the parsed descriptor
+    assert_eq!(descriptor.ident().name(), "a");
+    assert_eq!(descriptor.ident().scope(), None);
+    assert_eq!(descriptor.range(), "workspace:packages/a");
+
+    // Verify the parsed package
+    assert_eq!(package.version, Some("0.0.0-use.local".to_string()));
+    assert_eq!(
+      package.resolution,
+      Some("a@workspace:packages/a".to_string())
+    );
+    assert_eq!(package.language_name.as_str(), "unknown");
+    assert_eq!(package.link_type, LinkType::Soft);
+    assert_eq!(package.checksum, None);
   }
 }

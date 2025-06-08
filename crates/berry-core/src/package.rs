@@ -1,8 +1,9 @@
 use crate::ident::{Descriptor, Ident};
 use crate::metadata::{DependencyMeta, PeerDependencyMeta};
 use std::collections::HashMap;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The type of link to use for a package
 pub enum LinkType {
   /// The package manager owns the location (typically things within the cache)
@@ -15,13 +16,21 @@ pub enum LinkType {
   Soft,
 }
 
+impl FromStr for LinkType {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "hard" => Ok(Self::Hard),
+      "soft" => Ok(Self::Soft),
+      _ => Err(()),
+    }
+  }
+}
+
 impl LinkType {
   pub fn from_str(s: &str) -> Option<Self> {
-    match s {
-      "hard" => Some(Self::Hard),
-      "soft" => Some(Self::Soft),
-      _ => None,
-    }
+    s.parse().ok()
   }
 }
 
@@ -34,18 +43,18 @@ struct BinaryName(String);
 /// <https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-fslib/sources/path.ts#L9>
 /// note - yarn uses internal types to differ between file paths and portable paths
 /// The path to the binary being shipped by a dependency
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 struct PortablePath(String);
 
 /// The resolved(?) version of the package dependency
 /// e.g. `1.2.3`, `1.2.3-beta.1`, `0.0.0-use-local`
 /// note: Not an identifier, as this is a literal version
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 struct PackageVersion(String);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct LanguageName(String);
 
@@ -60,7 +69,7 @@ impl LanguageName {
 }
 
 // TODO: should the strings here be owned, or just &str for 'a
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct Package {
   /// Version of the package, if available
@@ -119,16 +128,19 @@ impl Package {
     }
   }
 
+  #[must_use]
   pub fn with_version(mut self, version: String) -> Self {
     self.version = Some(version);
     self
   }
 
+  #[must_use]
   pub fn with_resolution(mut self, resolution: String) -> Self {
     self.resolution = Some(resolution);
     self
   }
 
+  #[must_use]
   pub fn with_checksum(mut self, checksum: String) -> Self {
     self.checksum = Some(checksum);
     self
