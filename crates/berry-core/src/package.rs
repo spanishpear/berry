@@ -2,7 +2,7 @@ use crate::ident::{Descriptor, Ident};
 use crate::metadata::{DependencyMeta, PeerDependencyMeta};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 /// The type of link to use for a package
 pub enum LinkType {
   /// The package manager owns the location (typically things within the cache)
@@ -15,42 +15,68 @@ pub enum LinkType {
   Soft,
 }
 
+impl LinkType {
+  pub fn from_str(s: &str) -> Option<Self> {
+    match s {
+      "hard" => Some(Self::Hard),
+      "soft" => Some(Self::Soft),
+      _ => None,
+    }
+  }
+}
+
 /// The name of the binary being shipped by a dependency
 /// e.g. `napi`, `taplo`, `yarn`
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 struct BinaryName(String);
 
 /// <https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-fslib/sources/path.ts#L9>
 /// note - yarn uses internal types to differ between file paths and portable paths
 /// The path to the binary being shipped by a dependency
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 struct PortablePath(String);
 
 /// The resolved(?) version of the package dependency
 /// e.g. `1.2.3`, `1.2.3-beta.1`, `0.0.0-use-local`
 /// note: Not an identifier, as this is a literal version
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 struct PackageVersion(String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
-struct LanguageName(String);
+pub struct LanguageName(String);
+
+impl LanguageName {
+  pub fn new(name: String) -> Self {
+    Self(name)
+  }
+
+  pub fn as_str(&self) -> &str {
+    &self.0
+  }
+}
 
 // TODO: should the strings here be owned, or just &str for 'a
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub struct Package {
   /// Version of the package, if available
-  version: Option<String>,
+  pub version: Option<String>,
+
+  /// Resolution string for the package
+  pub resolution: Option<String>,
 
   /// The "language" of the package (eg. `node`), for use with multi-linkers.
-  language_name: LanguageName,
+  pub language_name: LanguageName,
 
   /// Type of filesystem link for a pacakge
-  link_type: LinkType,
+  pub link_type: LinkType,
+
+  /// Checksum for the package
+  pub checksum: Option<String>,
 
   /// A set of constraints indicating whether the package supports the host environments
   conditions: Option<String>,
@@ -58,7 +84,7 @@ pub struct Package {
   /// A map of the package's dependencies. There's no distinction between prod
   /// dependencies and dev dependencies, because those have already been merged
   /// during the resolution process
-  dependencies: HashMap<Ident, Descriptor>,
+  pub dependencies: HashMap<Ident, Descriptor>,
 
   /// Map with additional information about direct dependencies
   dependencies_meta: HashMap<Ident, Option<DependencyMeta>>,
@@ -74,6 +100,39 @@ pub struct Package {
   /// We don't need binaries in resolution, but we do neeed them to keep `yarn run` fast
   /// else we have to parse and read all of the zipfiles
   bin: HashMap<BinaryName, PortablePath>,
+}
+
+impl Package {
+  pub fn new(language_name: String, link_type: LinkType) -> Self {
+    Self {
+      version: None,
+      resolution: None,
+      language_name: LanguageName::new(language_name),
+      link_type,
+      checksum: None,
+      conditions: None,
+      dependencies: HashMap::new(),
+      dependencies_meta: HashMap::new(),
+      peer_dependencies: HashMap::new(),
+      peer_dependencies_meta: HashMap::new(),
+      bin: HashMap::new(),
+    }
+  }
+
+  pub fn with_version(mut self, version: String) -> Self {
+    self.version = Some(version);
+    self
+  }
+
+  pub fn with_resolution(mut self, resolution: String) -> Self {
+    self.resolution = Some(resolution);
+    self
+  }
+
+  pub fn with_checksum(mut self, checksum: String) -> Self {
+    self.checksum = Some(checksum);
+    self
+  }
 }
 
 pub type LockfileEntry = Package;
