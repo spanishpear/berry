@@ -18,25 +18,30 @@ pub enum LinkType {
 /// The name of the binary being shipped by a dependency
 /// e.g. `napi`, `taplo`, `yarn`
 #[derive(Debug)]
+#[allow(dead_code)]
 struct BinaryName(String);
 
 /// https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-fslib/sources/path.ts#L9
 /// note - yarn uses internal types to differ between file paths and portable paths
 /// The path to the binary being shipped by a dependency
 #[derive(Debug)]
+#[allow(dead_code)]
 struct PortablePath(String);
 
 /// The resolved(?) version of the package dependency
 /// e.g. `1.2.3`, `1.2.3-beta.1`, `0.0.0-use-local`
 /// note: Not an identifier, as this is a literal version
 #[derive(Debug)]
+#[allow(dead_code)]
 struct PackageVersion(String);
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct LanguageName(String);
 
 // TODO: should the strings here be owned, or just &str for 'a
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Package {
   /// Version of the package, if available
   version: Option<String>,
