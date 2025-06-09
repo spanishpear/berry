@@ -46,7 +46,9 @@ resolver = "2"
   # Now, allow ones we want to ignore
   cargo_common_metadata = "allow"
   implicit_return       = "allow" # Prefer idiomatic rust
+  missing_const_for_fn  = "allow"
   missing_errors_doc    = "allow"
+  missing_panics_doc    = "allow"
   must_use_candidate    = "allow"
 
   [workspace.dependencies]

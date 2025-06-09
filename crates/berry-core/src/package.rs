@@ -1,7 +1,6 @@
 use crate::ident::{Descriptor, Ident};
 use crate::metadata::{DependencyMeta, PeerDependencyMeta};
 use std::collections::HashMap;
-use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The type of link to use for a package
@@ -16,21 +15,16 @@ pub enum LinkType {
   Soft,
 }
 
-impl FromStr for LinkType {
-  type Err = ();
+// is there a derive for this?
+impl TryFrom<&str> for LinkType {
+  type Error = ();
 
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
+  fn try_from(s: &str) -> Result<Self, Self::Error> {
     match s {
       "hard" => Ok(Self::Hard),
       "soft" => Ok(Self::Soft),
       _ => Err(()),
     }
-  }
-}
-
-impl LinkType {
-  pub fn from_str(s: &str) -> Option<Self> {
-    s.parse().ok()
   }
 }
 
@@ -55,15 +49,16 @@ struct PortablePath(String);
 struct PackageVersion(String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct LanguageName(String);
 
 impl LanguageName {
   pub fn new(name: String) -> Self {
     Self(name)
   }
+}
 
-  pub fn as_str(&self) -> &str {
+impl AsRef<str> for LanguageName {
+  fn as_ref(&self) -> &str {
     &self.0
   }
 }

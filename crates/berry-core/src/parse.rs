@@ -71,19 +71,19 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
   assert_eq!(remaining, "", "Should consume entire descriptor string");
 
   // Parse the name part to extract scope and name
-  let ident = if let Some(stripped) = name_part.strip_prefix('@') {
-    // Scoped package: @babel/code-frame
-    let parts: Vec<&str> = stripped.splitn(2, '/').collect();
-    if parts.len() == 2 {
-      Ident::new(Some(format!("@{}", parts[0])), parts[1].to_string())
-    } else {
-      // Malformed scoped package, treat as simple name
-      Ident::new(None, name_part.to_string())
-    }
-  } else {
-    // Simple package: debug
-    Ident::new(None, name_part.to_string())
-  };
+  let ident = name_part.strip_prefix('@').map_or_else(
+    || Ident::new(None, name_part.to_string()),
+    |stripped| {
+      // Scoped package: @babel/code-frame
+      let parts: Vec<&str> = stripped.splitn(2, '/').collect();
+      if parts.len() == 2 {
+        Ident::new(Some(format!("@{}", parts[0])), parts[1].to_string())
+      } else {
+        // Malformed scoped package, treat as simple name
+        Ident::new(None, name_part.to_string())
+      }
+    },
+  );
 
   // Combine protocol and range for the descriptor range
   let full_range = format!("{protocol}:{range_part}");
@@ -134,9 +134,8 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
         package.language_name = crate::package::LanguageName::new(value.to_string());
       }
       "linkType" => {
-        if let Some(link_type) = LinkType::from_str(&value) {
-          package.link_type = link_type;
-        }
+        package.link_type = LinkType::try_from(value.as_str())
+          .unwrap_or_else(|()| panic!("Invalid link type: {value}"));
       }
       "checksum" => {
         package.checksum = Some(value.to_string());
@@ -144,9 +143,11 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
       "dependencies" => {
         // For now, we'll skip parsing nested dependencies
         // This will be implemented in a future iteration
+        todo!("parse nested dependencies");
       }
       _ => {
         // Skip unknown properties for now
+        todo!("parse unknown properties");
       }
     }
   }
@@ -284,7 +285,7 @@ mod tests {
     // Verify the parsed package properties
     assert_eq!(package.version, Some("1.0.0".to_string()));
     assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
-    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.language_name.as_ref(), "node");
     assert_eq!(package.link_type, LinkType::Hard);
     assert_eq!(package.checksum, None);
   }
@@ -310,7 +311,7 @@ mod tests {
     // Verify the parsed package properties
     assert_eq!(package.version, Some("1.0.0".to_string()));
     assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
-    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.language_name.as_ref(), "node");
     assert_eq!(package.link_type, LinkType::Hard);
   }
 
@@ -334,7 +335,7 @@ mod tests {
     // Verify the parsed package properties
     assert_eq!(package.version, Some("1.0.0".to_string()));
     assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
-    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.language_name.as_ref(), "node");
     assert_eq!(package.link_type, LinkType::Hard);
     assert_eq!(package.checksum, Some("edfec8784737afbeea43cc78c3f56c33b88d3e751cc7220ae7a1c5370ff099e7352703275bdb56ea9967f92961231ce0625f8234d82259047303849671153f03".to_string()));
   }
@@ -368,7 +369,7 @@ mod tests {
     // Verify the parsed package
     assert_eq!(package.version, Some("1.0.0".to_string()));
     assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
-    assert_eq!(package.language_name.as_str(), "node");
+    assert_eq!(package.language_name.as_ref(), "node");
     assert_eq!(package.link_type, LinkType::Hard);
     assert_eq!(package.checksum, Some("edfec8784737afbeea43cc78c3f56c33b88d3e751cc7220ae7a1c5370ff099e7352703275bdb56ea9967f92961231ce0625f8234d82259047303849671153f03".to_string()));
   }
@@ -402,7 +403,7 @@ mod tests {
       package.resolution,
       Some("a@workspace:packages/a".to_string())
     );
-    assert_eq!(package.language_name.as_str(), "unknown");
+    assert_eq!(package.language_name.as_ref(), "unknown");
     assert_eq!(package.link_type, LinkType::Soft);
     assert_eq!(package.checksum, None);
   }
