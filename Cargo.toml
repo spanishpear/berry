@@ -8,6 +8,7 @@ resolver = "2"
   categories = ["parsing", "parser-implementations"]
   # description = "A simple yarn berry lockfile parser"
   edition = "2024"
+  version = "0.1.0"
   # keywords = [
   #   "yarn",
   #   "berry",

@@ -1,0 +1,125 @@
+//! End-to-end integration tests for the Berry lockfile parser
+//!
+//! This crate provides comprehensive integration tests using real Yarn lockfile
+//! fixtures to validate the parsing functionality across various lockfile formats.
+
+use std::path::{Path, PathBuf};
+
+/// Load a fixture file from the fixtures directory
+pub fn load_fixture(filename: &str) -> String {
+  let fixture_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+    .parent()
+    .unwrap()
+    .parent()
+    .unwrap()
+    .join("fixtures")
+    .join(filename);
+
+  std::fs::read_to_string(&fixture_path).unwrap_or_else(|e| {
+    panic!(
+      "Failed to read fixture file {}: {}",
+      fixture_path.display(),
+      e
+    )
+  })
+}
+
+/// Load a fixture file from a path
+pub fn load_fixture_from_path(fixture_path: &Path) -> String {
+  std::fs::read_to_string(fixture_path).unwrap_or_else(|e| {
+    panic!(
+      "Failed to read fixture file {}: {}",
+      fixture_path.display(),
+      e
+    )
+  })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use berry_core::parse::parse_lockfile;
+  use rstest::rstest;
+
+  #[ignore = "This is a work in progress"]
+  #[rstest]
+  fn test_parse_lockfile_fixtures(#[files("../../fixtures/*.lock")] fixture_path: PathBuf) {
+    let contents = load_fixture_from_path(&fixture_path);
+
+    // Get the filename for better error messages
+    let filename = fixture_path
+      .file_name()
+      .and_then(|name| name.to_str())
+      .unwrap_or("unknown");
+
+    // Verify we can load the fixture
+    assert!(!contents.is_empty(), "Fixture should not be empty");
+
+    println!("Testing fixture: {}", filename);
+
+    let result = parse_lockfile(&contents);
+    assert!(
+      result.is_ok(),
+      "Should successfully parse minimal berry lockfile"
+    );
+  }
+
+  // TODO: get this test passing, then remove it
+  #[test]
+  fn test_specific_minimal_berry_lockfile() {
+    let contents = load_fixture("minimal-berry.lock");
+
+    // Specific test for the minimal berry lockfile
+    assert!(!contents.is_empty(), "Fixture should not be empty");
+    assert!(
+      contents.contains("__metadata"),
+      "Should contain metadata section"
+    );
+    assert!(
+      contents.contains("workspace:"),
+      "Should contain workspace packages"
+    );
+
+    let result = parse_lockfile(&contents);
+    assert!(
+      result.is_ok(),
+      "Should successfully parse minimal berry lockfile"
+    );
+  }
+
+  #[test]
+  fn test_fixture_discovery() {
+    // Verify that we can find fixture files
+    let fixtures_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+      .parent()
+      .unwrap()
+      .parent()
+      .unwrap()
+      .join("fixtures");
+
+    assert!(fixtures_dir.exists(), "Fixtures directory should exist");
+
+    let lock_files: Vec<_> = std::fs::read_dir(&fixtures_dir)
+      .unwrap()
+      .filter_map(|entry| {
+        let entry = entry.ok()?;
+        let path = entry.path();
+        if path.extension()? == "lock" {
+          Some(path)
+        } else {
+          None
+        }
+      })
+      .collect();
+
+    assert!(
+      !lock_files.is_empty(),
+      "Should find at least one .lock file"
+    );
+    println!("Found {} .lock files", lock_files.len());
+
+    for lock_file in &lock_files {
+      println!("  - {}", lock_file.file_name().unwrap().to_str().unwrap());
+    }
+  }
+}

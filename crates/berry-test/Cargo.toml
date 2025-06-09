@@ -1,0 +1,17 @@
+[package]
+authors.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+name                 = "berry-test"
+repository.workspace = true
+version.workspace    = true
+
+[dependencies]
+berry-core = { path = "../berry-core" }
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+rstest            = "0.25"
+
+[lints]
+workspace = true
