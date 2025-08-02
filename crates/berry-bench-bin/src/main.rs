@@ -72,16 +72,16 @@ fn benchmark_fixture(
     let start = Instant::now();
     let result = parse_lockfile(&fixture);
     let duration = start.elapsed();
+    assert!(result.is_ok(), "Should parse {fixture_name} successfully");
 
     if verbose {
       println!(
-        "  Warmup {}: {:.3}ms",
+        "  Warmup {}: {:.3}ms - {} packages parsed",
         i + 1,
-        duration.as_secs_f64() * 1000.0
+        duration.as_secs_f64() * 1000.0,
+        result.unwrap().1.entries.len()
       );
     }
-
-    assert!(result.is_ok(), "Should parse {fixture_name} successfully");
   }
 
   // Measure heap usage with a single run

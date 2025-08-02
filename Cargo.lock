@@ -99,6 +99,7 @@ dependencies = [
 name = "berry-core"
 version = "0.1.0"
 dependencies = [
+ "berry-test",
  "nom",
 ]
 

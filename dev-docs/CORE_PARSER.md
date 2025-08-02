@@ -64,6 +64,7 @@ enum PropertyValue<'a> {
     Simple(&'a str, &'a str),           // key: value
     Dependencies(Vec<(&'a str, &'a str)>), // dependencies block
     PeerDependencies(Vec<(&'a str, &'a str)>), // peerDependencies block
+    Bin(Vec<(&'a str, &'a str)>),       // bin block
 }
 ```
 
@@ -253,27 +254,27 @@ for package in &lockfile.entries {
 
 **Completed**:
 
-- All tests passing (22/22)
+- All tests passing (23/23)
 - Zero clippy warnings
 - Zero-allocation parsing pipeline
 - Modern nom API usage
 - Comprehensive test coverage
+- Multi-descriptor support with zero-allocation parsing
+- Patch protocol support
+- Bin and conditions field parsing
 
 **Known Issues**:
 
-- `duplicate-packages.yarn.lock` (128KB) fails to parse
-- Multi-descriptor support incomplete
-- Some Yarn v4 features not implemented
+- All Berry/Yarn v3/v4 fixtures parse successfully
+- Some Yarn v4 advanced features not implemented (dependenciesMeta, peerDependenciesMeta)
 
 ## Future Work
 
 ### Planned Features
 
-- Complete multi-descriptor support
-- Protocol-specific parsing (`git:`, `file:`, `portal:`)
 - Meta fields parsing (`dependenciesMeta`, `peerDependenciesMeta`)
+- Protocol-specific parsing (`git:`, `file:`, `portal:`)
 - Resolutions and constraints sections
-- Binary field parsing
 
 ### Performance Improvements
 

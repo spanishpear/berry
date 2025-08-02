@@ -102,7 +102,7 @@ cargo bench --package berry-bench -- --html
 
 - **Small fixtures** (1-10 packages): `minimal-berry.lock`, `workspaces.yarn.lock`
 - **Medium fixtures** (10-1000 packages): `yarn4-mixed-protocol.lock`, `auxiliary-packages.yarn.lock`
-- **Large fixtures** (1000+ packages): `berry.lock`, `duplicate-packages.yarn.lock`
+- **Large fixtures** (1000+ packages): `berry.lock`, `resolutions-patches.yarn.lock`
 
 #### 2. Memory Usage
 

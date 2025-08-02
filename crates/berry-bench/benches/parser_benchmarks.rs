@@ -44,15 +44,31 @@ fn benchmark_fixtures(c: &mut Criterion) {
     });
   });
 
-  // Very large fixture benchmark - disabled due to parsing issues
-  // group.bench_function("duplicate_packages", |b| {
-  //     let fixture = load_fixture("duplicate-packages.yarn.lock");
-  //     b.iter(|| {
-  //         let result = parse_lockfile(black_box(&fixture));
-  //         assert!(result.is_ok(), "Should parse duplicate packages fixture successfully");
-  //         result.unwrap().1
-  //     });
-  // });
+  // Large fixture benchmark
+  group.bench_function("duplicate_packages", |b| {
+    let fixture = load_fixture("berry.lock");
+    b.iter(|| {
+      let result = parse_lockfile(black_box(&fixture));
+      assert!(
+        result.is_ok(),
+        "Should parse duplicate packages fixture successfully"
+      );
+      result.unwrap().1
+    });
+  });
+
+  // Extra large fixture benchmark
+  group.bench_function("resolutions_patches", |b| {
+    let fixture = load_fixture("resolutions-patches.yarn.lock");
+    b.iter(|| {
+      let result = parse_lockfile(black_box(&fixture));
+      assert!(
+        result.is_ok(),
+        "Should parse resolutions patches fixture successfully"
+      );
+      result.unwrap().1
+    });
+  });
 
   group.finish();
 }
@@ -66,7 +82,8 @@ fn benchmark_parsing_speed_vs_size(c: &mut Criterion) {
     ("workspaces.yarn.lock", "small-medium"),
     ("yarn4-mixed-protocol.lock", "medium"),
     ("auxiliary-packages.yarn.lock", "large"),
-    // ("duplicate-packages.yarn.lock", "very-large"), // Disabled due to parsing issues
+    ("berry.lock", "extra-large"), // Large Berry lockfile (~112KB)
+    ("resolutions-patches.yarn.lock", "extra-extra-large"), // Very large lockfile (~2MB)
   ];
 
   for (fixture_name, size_label) in fixtures {
@@ -94,6 +111,8 @@ fn benchmark_memory_usage(c: &mut Criterion) {
     "minimal-berry.lock",
     "workspaces.yarn.lock",
     "auxiliary-packages.yarn.lock",
+    "berry.lock",
+    "resolutions-patches.yarn.lock",
   ];
 
   for fixture_name in fixtures {
@@ -157,6 +176,8 @@ fn benchmark_heap_usage(c: &mut Criterion) {
     ("minimal-berry.lock", "small"),
     ("workspaces.yarn.lock", "medium"),
     ("auxiliary-packages.yarn.lock", "large"),
+    ("berry.lock", "extra-large"),
+    ("resolutions-patches.yarn.lock", "extra-extra-large"),
   ];
 
   for (fixture_name, size_label) in fixtures {

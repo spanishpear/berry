@@ -3,7 +3,7 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct PeerDependencyMeta {
-  optional: bool,
+  pub optional: bool,
 }
 
 // https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-core/sources/Manifest.ts#L19
@@ -12,7 +12,7 @@ pub struct PeerDependencyMeta {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct DependencyMeta {
-  built: Option<bool>,
-  optional: Option<bool>,
-  unplugged: Option<bool>,
+  pub built: Option<bool>,
+  pub optional: Option<bool>,
+  pub unplugged: Option<bool>,
 }

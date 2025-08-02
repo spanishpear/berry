@@ -10,5 +10,8 @@ version              = "0.1.0"
 [dependencies]
 nom = "8.0.0"
 
+[dev-dependencies]
+berry-test = { path = "../berry-test" }
+
 [lints]
 workspace = true

@@ -83,7 +83,7 @@ pub struct Package {
   pub checksum: Option<String>,
 
   /// A set of constraints indicating whether the package supports the host environments
-  conditions: Option<String>,
+  pub conditions: Option<String>,
 
   /// A map of the package's dependencies. There's no distinction between prod
   /// dependencies and dev dependencies, because those have already been merged
@@ -91,19 +91,19 @@ pub struct Package {
   pub dependencies: HashMap<Ident, Descriptor>,
 
   /// Map with additional information about direct dependencies
-  dependencies_meta: HashMap<Ident, Option<DependencyMeta>>,
+  pub dependencies_meta: HashMap<Ident, Option<DependencyMeta>>,
 
   /// Map of pacakges peer dependencies
   pub peer_dependencies: HashMap<Ident, Descriptor>,
 
   /// Map with additional information about peer dependencies
-  peer_dependencies_meta: HashMap<Ident, PeerDependencyMeta>,
+  pub peer_dependencies_meta: HashMap<Ident, PeerDependencyMeta>,
 
   /// all bin entries for the package
   ///
   /// We don't need binaries in resolution, but we do neeed them to keep `yarn run` fast
   /// else we have to parse and read all of the zipfiles
-  bin: HashMap<BinaryName, PortablePath>,
+  pub bin: HashMap<String, String>,
 }
 
 impl Package {

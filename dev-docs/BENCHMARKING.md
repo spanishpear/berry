@@ -27,21 +27,6 @@ Technical documentation for Berry's benchmarking infrastructure.
 
 **Purpose**: Quick performance testing for development workflow
 
-**Features**:
-
-- Fast iteration cycles
-- Multiple fixture support
-- Simple regression detection
-- JSON output for CI integration
-- Memory usage tracking
-
-**Use cases**:
-
-- Development workflow
-- Quick performance checks
-- CI/CD integration
-- Comparative analysis
-
 ## Setup
 
 ### Prerequisites
@@ -79,8 +64,9 @@ cargo run --bin berry-bench-bin -- -f workspaces.yarn.lock
 # Medium fixtures (10-1000 packages)
 cargo run --bin berry-bench-bin -- -f auxiliary-packages.yarn.lock
 
-# Large fixtures (1000+ packages) - Currently disabled
-# cargo run --bin berry-bench-bin -- -f duplicate-packages.yarn.lock
+# Large fixtures (1000+ packages)
+cargo run --bin berry-bench-bin -- -f berry.lock
+cargo run --bin berry-bench-bin -- -f resolutions-patches.yarn.lock
 ```
 
 **Performance targets**:
