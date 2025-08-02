@@ -1,0 +1,19 @@
+[package]
+authors.workspace    = true
+description          = "Node bindings for a simple yarn berry lockfile parser"
+edition.workspace    = true
+license.workspace    = true
+name                 = "berry-node-bindings"
+repository.workspace = true
+
+[lib]
+# cdylib is a dynamic library e.g. that allows us to be loaded by Node.js
+crate-type = ["cdylib"]
+
+[dependencies]
+berry-core  = { path = "../berry-core" }
+napi        = { workspace = true }
+napi-derive = { workspace = true }
+
+[build-dependencies]
+napi-build = "2.1.6"
