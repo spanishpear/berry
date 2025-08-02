@@ -1,3 +1,4 @@
+#![deny(clippy::all)]
 pub mod ident;
 pub mod locator;
 pub mod lockfile;

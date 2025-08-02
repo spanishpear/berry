@@ -1,0 +1,20 @@
+[package]
+authors.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+name                 = "berry-bench"
+repository.workspace = true
+version.workspace    = true
+
+[dependencies]
+berry-core   = { path = "../berry-core" }
+berry-test   = { path = "../berry-test" }
+criterion    = { version = "0.5", features = ["html_reports"] }
+memory-stats = "1.1"
+
+[[bench]]
+harness = false
+name    = "parser_benchmarks"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }

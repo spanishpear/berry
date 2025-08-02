@@ -1,9 +1,10 @@
+#![deny(clippy::all)]
 //! End-to-end integration tests for the Berry lockfile parser
 //!
 //! This crate provides comprehensive integration tests using real Yarn lockfile
 //! fixtures to validate the parsing functionality across various lockfile formats.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Load a fixture file from the fixtures directory
 pub fn load_fixture(filename: &str) -> String {
@@ -40,6 +41,7 @@ mod tests {
   use super::*;
   use berry_core::parse::parse_lockfile;
   use rstest::rstest;
+  use std::path::PathBuf;
 
   #[ignore = "This is a work in progress"]
   #[rstest]
@@ -55,7 +57,7 @@ mod tests {
     // Verify we can load the fixture
     assert!(!contents.is_empty(), "Fixture should not be empty");
 
-    println!("Testing fixture: {}", filename);
+    println!("Testing fixture: {filename}");
 
     let result = parse_lockfile(&contents);
     assert!(

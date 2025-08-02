@@ -1,0 +1,18 @@
+[package]
+authors.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+name                 = "berry-bench-bin"
+repository.workspace = true
+version.workspace    = true
+
+[dependencies]
+berry-core   = { path = "../berry-core" }
+berry-test   = { path = "../berry-test" }
+clap         = { version = "4.0", features = ["derive"] }
+memory-stats = "1.1"
+serde        = { version = "1.0", features = ["derive"] }
+serde_json   = "1.0"
+
+[lints]
+workspace = true

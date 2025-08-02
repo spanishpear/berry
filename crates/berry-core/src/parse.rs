@@ -5,8 +5,8 @@ use nom::{
   bytes::complete::{is_not, tag, take_until, take_while1},
   character::complete::{char, newline, space0, space1},
   combinator::{map, opt, recognize},
-  multi::{many0, separated_list1, fold_many0},
-  sequence::{delimited, tuple},
+  multi::{fold_many0, many0, separated_list1},
+  sequence::delimited,
 };
 
 use crate::ident::{Descriptor, Ident};
@@ -29,7 +29,13 @@ pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
   // Parse all package entries, extracting just the Package from each entry
   let (rest, packages) = many0(parse_package_only).parse(rest)?;
 
-  Ok((rest, Lockfile { metadata, entries: packages }))
+  Ok((
+    rest,
+    Lockfile {
+      metadata,
+      entries: packages,
+    },
+  ))
 }
 
 /// Parse a single package entry from the lockfile
@@ -60,15 +66,16 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
     delimited(char('"'), take_until("\":"), tag("\":")).parse(input)?;
 
   // Parse comma-separated descriptors using nom combinators
-  let (remaining, descriptors) = separated_list1(
-    tuple((space0, char(','), space0)),
-    parse_single_descriptor,
-  ).parse(descriptor_string)?;
+  let (remaining, descriptors) =
+    separated_list1((space0, char(','), space0), parse_single_descriptor)
+      .parse(descriptor_string)?;
 
   assert_eq!(remaining, "", "Should consume entire descriptor string");
 
   // For now, return the first descriptor (future enhancement: handle multiple descriptors)
-  let first_descriptor = descriptors.into_iter().next()
+  let first_descriptor = descriptors
+    .into_iter()
+    .next()
     .expect("separated_list1 should guarantee at least one descriptor");
 
   Ok((rest, first_descriptor))
@@ -77,29 +84,36 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
 /// Parse a single descriptor string like "debug@npm:1.0.0" or "c@*"
 fn parse_single_descriptor(input: &str) -> IResult<&str, Descriptor> {
   // Try protocol:range format first (e.g., npm:1.0.0)
-  if let Ok((remaining, (name_part, _, protocol, _, range))) = tuple((
+  if let Ok((remaining, (name_part, _, protocol, _, range))) = (
     parse_package_name,
     char('@'),
     parse_protocol,
     char(':'),
     take_while1(|c: char| c != ',' && c != '"'),
-  )).parse(input) {
+  )
+    .parse(input)
+  {
     let ident = parse_name_to_ident(name_part);
-    let full_range = format!("{}:{}", protocol, range);
+    let full_range = format!("{protocol}:{range}");
     return Ok((remaining, Descriptor::new(ident, full_range)));
   }
 
   // Try simple range format (e.g., * for c@*)
-  if let Ok((remaining, (name_part, _, range))) = tuple((
+  if let Ok((remaining, (name_part, _, range))) = (
     parse_package_name,
     char('@'),
     take_while1(|c: char| c != ',' && c != '"'),
-  )).parse(input) {
+  )
+    .parse(input)
+  {
     let ident = parse_name_to_ident(name_part);
     return Ok((remaining, Descriptor::new(ident, range.to_string())));
   }
 
-  Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Alt)))
+  Err(nom::Err::Error(nom::error::Error::new(
+    input,
+    nom::error::ErrorKind::Alt,
+  )))
 }
 
 /// Helper function to parse name part into Ident
@@ -165,8 +179,8 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
             package.language_name = crate::package::LanguageName::new(value.to_string());
           }
           "linkType" => {
-            package.link_type = LinkType::try_from(value)
-              .unwrap_or_else(|()| panic!("Invalid link type: {value}"));
+            package.link_type =
+              LinkType::try_from(value).unwrap_or_else(|()| panic!("Invalid link type: {value}"));
           }
           "checksum" => {
             package.checksum = Some(value.to_string());
@@ -181,7 +195,9 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
         for (dep_name, dep_range) in dependencies {
           let ident = parse_dependency_name_to_ident(dep_name);
           let descriptor = Descriptor::new(ident, dep_range.to_string());
-          package.dependencies.insert(descriptor.ident().clone(), descriptor);
+          package
+            .dependencies
+            .insert(descriptor.ident().clone(), descriptor);
         }
       }
       PropertyValue::PeerDependencies(peer_dependencies) => {
@@ -189,7 +205,9 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
         for (dep_name, dep_range) in peer_dependencies {
           let ident = parse_dependency_name_to_ident(dep_name);
           let descriptor = Descriptor::new(ident, dep_range.to_string());
-          package.peer_dependencies.insert(descriptor.ident().clone(), descriptor);
+          package
+            .peer_dependencies
+            .insert(descriptor.ident().clone(), descriptor);
         }
       }
     }
@@ -220,15 +238,18 @@ fn parse_property_line(input: &str) -> IResult<&str, PropertyValue<'_>> {
   }
 
   // If nothing matches, return an error
-  Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Alt)))
+  Err(nom::Err::Error(nom::error::Error::new(
+    input,
+    nom::error::ErrorKind::Alt,
+  )))
 }
 
 /// Enum to represent different types of property values
 #[derive(Debug)]
 enum PropertyValue<'a> {
   Simple(&'a str, &'a str),
-  Dependencies(Vec<(&'a str, &'a str)>),  // Use Vec instead of HashMap to avoid allocations
-  PeerDependencies(Vec<(&'a str, &'a str)>),  // Use Vec instead of HashMap to avoid allocations
+  Dependencies(Vec<(&'a str, &'a str)>), // Use Vec instead of HashMap to avoid allocations
+  PeerDependencies(Vec<(&'a str, &'a str)>), // Use Vec instead of HashMap to avoid allocations
 }
 
 /// Parse a simple key-value property line
@@ -247,39 +268,33 @@ fn parse_simple_property(input: &str) -> IResult<&str, (&str, &str)> {
 }
 
 /// Parse a dependencies block and process dependencies without collecting them
-/// This uses fold_many0 to avoid Vec allocations
+/// This uses `fold_many0` to avoid Vec allocations
 fn parse_dependencies_block(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
   let (rest, (_, _, dependencies)) = (
     tag("  dependencies:"), // 2-space indented dependencies
     newline,
-    fold_many0(
-      parse_dependency_line,
-      Vec::new,
-      |mut acc, item| {
-        acc.push(item);
-        acc
-      }
-    )
-  ).parse(input)?;
+    fold_many0(parse_dependency_line, Vec::new, |mut acc, item| {
+      acc.push(item);
+      acc
+    }),
+  )
+    .parse(input)?;
 
   Ok((rest, dependencies))
 }
 
 /// Parse a peerDependencies block and process dependencies without collecting them
-/// This uses fold_many0 to avoid Vec allocations
+/// This uses `fold_many0` to avoid Vec allocations
 fn parse_peer_dependencies_block(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
   let (rest, (_, _, peer_dependencies)) = (
     tag("  peerDependencies:"), // 2-space indented peer dependencies
     newline,
-    fold_many0(
-      parse_dependency_line,
-      Vec::new,
-      |mut acc, item| {
-        acc.push(item);
-        acc
-      }
-    )
-  ).parse(input)?;
+    fold_many0(parse_dependency_line, Vec::new, |mut acc, item| {
+      acc.push(item);
+      acc
+    }),
+  )
+    .parse(input)?;
 
   Ok((rest, peer_dependencies))
 }
@@ -348,7 +363,10 @@ mod tests {
     let input = "    ms: 0.6.2\n";
     let result = parse_dependency_line(input);
 
-    assert!(result.is_ok(), "Should successfully parse simple dependency line");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse simple dependency line"
+    );
     let (remaining, (dep_name, dep_range)) = result.unwrap();
     assert_eq!(remaining, "");
     assert_eq!(dep_name, "ms");
@@ -360,7 +378,10 @@ mod tests {
     let input = "    @babel/code-frame: ^7.12.11\n";
     let result = parse_dependency_line(input);
 
-    assert!(result.is_ok(), "Should successfully parse scoped package dependency");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse scoped package dependency"
+    );
     let (remaining, (dep_name, dep_range)) = result.unwrap();
     assert_eq!(remaining, "");
     assert_eq!(dep_name, "@babel/code-frame");
@@ -372,7 +393,10 @@ mod tests {
     let input = "    lodash: ^3.0.0 || ^4.0.0\n";
     let result = parse_dependency_line(input);
 
-    assert!(result.is_ok(), "Should successfully parse complex version range");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse complex version range"
+    );
     let (remaining, (dep_name, dep_range)) = result.unwrap();
     assert_eq!(remaining, "");
     assert_eq!(dep_name, "lodash");
@@ -381,12 +405,15 @@ mod tests {
 
   #[test]
   fn test_parse_dependencies_block_single_dependency() {
-    let input = r#"  dependencies:
+    let input = r"  dependencies:
     ms: 0.6.2
-"#;
+";
     let result = parse_dependencies_block(input);
 
-    assert!(result.is_ok(), "Should successfully parse single dependency block");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse single dependency block"
+    );
     let (remaining, dependencies) = result.unwrap();
     assert_eq!(remaining, "");
 
@@ -397,14 +424,17 @@ mod tests {
 
   #[test]
   fn test_parse_dependencies_block_multiple_dependencies() {
-    let input = r#"  dependencies:
+    let input = r"  dependencies:
     ms: 0.6.2
     lodash: ^4.17.0
     @babel/core: ^7.12.0
-"#;
+";
     let result = parse_dependencies_block(input);
 
-    assert!(result.is_ok(), "Should successfully parse multiple dependencies");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse multiple dependencies"
+    );
     let (remaining, dependencies) = result.unwrap();
     assert_eq!(remaining, "");
 
@@ -417,11 +447,14 @@ mod tests {
 
   #[test]
   fn test_parse_dependencies_block_empty() {
-    let input = r#"  dependencies:
-"#;
+    let input = r"  dependencies:
+";
     let result = parse_dependencies_block(input);
 
-    assert!(result.is_ok(), "Should successfully parse empty dependencies block");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse empty dependencies block"
+    );
     let (remaining, dependencies) = result.unwrap();
     assert_eq!(remaining, "");
     assert_eq!(dependencies.len(), 0);
@@ -429,13 +462,16 @@ mod tests {
 
   #[test]
   fn test_parse_peer_dependencies_block() {
-    let input = r#"  peerDependencies:
+    let input = r"  peerDependencies:
     lodash: ^3.0.0 || ^4.0.0
     react: ^16.0.0 || ^17.0.0
-"#;
+";
     let result = parse_peer_dependencies_block(input);
 
-    assert!(result.is_ok(), "Should successfully parse peer dependencies block");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse peer dependencies block"
+    );
     let (remaining, peer_dependencies) = result.unwrap();
     assert_eq!(remaining, "");
 
@@ -643,7 +679,10 @@ mod tests {
     let input = r#""c@*, c@workspace:packages/c":"#;
     let result = parse_descriptor_line(input);
 
-    assert!(result.is_ok(), "Should successfully parse multi-descriptor line");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse multi-descriptor line"
+    );
     let (remaining, descriptor) = result.unwrap();
     assert_eq!(remaining, "");
 
@@ -658,7 +697,10 @@ mod tests {
     let input = r#""lodash@npm:^3.0.0 || ^4.0.0, lodash@npm:^4.17.0":"#;
     let result = parse_descriptor_line(input);
 
-    assert!(result.is_ok(), "Should successfully parse complex multi-descriptor line");
+    assert!(
+      result.is_ok(),
+      "Should successfully parse complex multi-descriptor line"
+    );
     let (remaining, descriptor) = result.unwrap();
     assert_eq!(remaining, "");
 
