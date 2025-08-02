@@ -85,6 +85,11 @@ mod tests {
       result.is_ok(),
       "Should successfully parse minimal berry lockfile"
     );
+
+    let lockfile = result.unwrap().1;
+    dbg!(&lockfile);
+    assert_eq!(lockfile.metadata.version, "6");
+    assert_eq!(lockfile.entries.len(), 5);
   }
 
   #[test]

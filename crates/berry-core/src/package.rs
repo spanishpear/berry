@@ -94,7 +94,7 @@ pub struct Package {
   dependencies_meta: HashMap<Ident, Option<DependencyMeta>>,
 
   /// Map of pacakges peer dependencies
-  peer_dependencies: HashMap<Ident, Descriptor>,
+  pub peer_dependencies: HashMap<Ident, Descriptor>,
 
   /// Map with additional information about peer dependencies
   peer_dependencies_meta: HashMap<Ident, PeerDependencyMeta>,

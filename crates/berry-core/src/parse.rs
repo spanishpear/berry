@@ -3,29 +3,40 @@ use nom::{
   Parser,
   branch::alt,
   bytes::complete::{is_not, tag, take_until, take_while1},
-  character::complete::{char, newline, space1},
-  combinator::{opt, recognize},
-  multi::many0,
-  sequence::delimited,
+  character::complete::{char, newline, space0, space1},
+  combinator::{map, opt, recognize},
+  multi::{many0, separated_list1},
+  sequence::{delimited, tuple},
 };
 
 use crate::ident::{Descriptor, Ident};
 use crate::lockfile::{Lockfile, parse_metadata, parse_yarn_header};
 use crate::package::{LinkType, Package};
 
+/// Parse just the package from a package entry, discarding the descriptor
+fn parse_package_only(input: &str) -> IResult<&str, Package> {
+  map(parse_package_entry, |(_, package)| package).parse(input)
+}
+
 /// Entrypoint for parsing a yarn lockfile
 pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
   let (rest, (_, _)) = parse_yarn_header(file_contents)?;
-  let (_rest, metadata) = parse_metadata(rest)?;
+  let (rest, metadata) = parse_metadata(rest)?;
 
-  dbg!(&metadata);
+  // Consume any blank lines after metadata
+  let (rest, _) = opt(newline).parse(rest)?;
 
-  todo!("actually parse the lockfile");
+  // Parse all package entries, extracting just the Package from each entry
+  let (rest, packages) = many0(parse_package_only).parse(rest)?;
+
+  Ok((rest, Lockfile { metadata, entries: packages }))
 }
 
 /// Parse a single package entry from the lockfile
+///
 /// Example input:
-/// ```
+///
+/// ```text
 /// "debug@npm:1.0.0":
 ///   version: 1.0.0
 ///   resolution: "debug@npm:1.0.0"
@@ -43,35 +54,57 @@ pub fn parse_package_entry(input: &str) -> IResult<&str, (Descriptor, Package)> 
   Ok((rest, (descriptor, package)))
 }
 
-/// Parse a package descriptor line like: "debug@npm:1.0.0":
-///
-/// # Panics
-///
-/// This function will panic if the internal parser logic fails to consume the entire
-/// descriptor string, which should not happen with valid input.
+/// Parse a package descriptor line like: "debug@npm:1.0.0": or "c@*, c@workspace:packages/c":
 pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
   let (rest, descriptor_string) =
     delimited(char('"'), take_until("\":"), tag("\":")).parse(input)?;
 
-  // Parse the descriptor string: name@protocol:range
-  // Examples:
-  // - debug@npm:1.0.0
-  // - @babel/code-frame@npm:7.12.11
-  // - a@workspace:packages/a
-
-  let (remaining, (name_part, _, protocol, _, range_part)) = (
-    parse_package_name, // Can be scoped like @babel/code-frame or simple like debug
-    char('@'),
-    parse_protocol, // npm, workspace, etc.
-    char(':'),
-    take_while1(|c: char| c != '"'), // The range/version part
-  )
-    .parse(descriptor_string)?;
+  // Parse comma-separated descriptors using nom combinators
+  let (remaining, descriptors) = separated_list1(
+    tuple((space0, char(','), space0)),
+    parse_single_descriptor,
+  ).parse(descriptor_string)?;
 
   assert_eq!(remaining, "", "Should consume entire descriptor string");
 
-  // Parse the name part to extract scope and name
-  let ident = name_part.strip_prefix('@').map_or_else(
+  // For now, return the first descriptor (future enhancement: handle multiple descriptors)
+  let first_descriptor = descriptors.into_iter().next()
+    .expect("separated_list1 should guarantee at least one descriptor");
+
+  Ok((rest, first_descriptor))
+}
+
+/// Parse a single descriptor string like "debug@npm:1.0.0" or "c@*"
+fn parse_single_descriptor(input: &str) -> IResult<&str, Descriptor> {
+  // Try protocol:range format first (e.g., npm:1.0.0)
+  if let Ok((remaining, (name_part, _, protocol, _, range))) = tuple((
+    parse_package_name,
+    char('@'),
+    parse_protocol,
+    char(':'),
+    take_while1(|c: char| c != ',' && c != '"'),
+  )).parse(input) {
+    let ident = parse_name_to_ident(name_part);
+    let full_range = format!("{}:{}", protocol, range);
+    return Ok((remaining, Descriptor::new(ident, full_range)));
+  }
+
+  // Try simple range format (e.g., * for c@*)
+  if let Ok((remaining, (name_part, _, range))) = tuple((
+    parse_package_name,
+    char('@'),
+    take_while1(|c: char| c != ',' && c != '"'),
+  )).parse(input) {
+    let ident = parse_name_to_ident(name_part);
+    return Ok((remaining, Descriptor::new(ident, range.to_string())));
+  }
+
+  Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Alt)))
+}
+
+/// Helper function to parse name part into Ident
+fn parse_name_to_ident(name_part: &str) -> Ident {
+  name_part.strip_prefix('@').map_or_else(
     || Ident::new(None, name_part.to_string()),
     |stripped| {
       // Scoped package: @babel/code-frame
@@ -83,12 +116,7 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Descriptor> {
         Ident::new(None, name_part.to_string())
       }
     },
-  );
-
-  // Combine protocol and range for the descriptor range
-  let full_range = format!("{protocol}:{range_part}");
-
-  Ok((rest, Descriptor::new(ident, full_range)))
+  )
 }
 
 /// Parse a package name, which can be scoped (@babel/code-frame) or simple (debug)
@@ -101,13 +129,14 @@ fn parse_package_name(input: &str) -> IResult<&str, &str> {
       char('/'),
       take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
     )),
-    // Simple package name
+    // non-scoped package name: debug
     take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
   ))
   .parse(input)
 }
 
 /// Parse protocol part like npm, workspace, git, etc.
+/// TODO: should we validate the protocol? e.g. npm, workspace, git, file, root, etc.
 fn parse_protocol(input: &str) -> IResult<&str, &str> {
   take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_').parse(input)
 }
@@ -122,32 +151,46 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
   // Build the package from the parsed properties
   let mut package = Package::new("unknown".to_string(), LinkType::Hard);
 
-  for (key, value) in properties {
-    match key.as_str() {
-      "version" => {
-        package.version = Some(value.trim_matches('"').to_string());
+  for property_value in properties {
+    match property_value {
+      PropertyValue::Simple(key, value) => {
+        match key {
+          "version" => {
+            package.version = Some(value.trim_matches('"').to_string());
+          }
+          "resolution" => {
+            package.resolution = Some(value.trim_matches('"').to_string());
+          }
+          "languageName" => {
+            package.language_name = crate::package::LanguageName::new(value.to_string());
+          }
+          "linkType" => {
+            package.link_type = LinkType::try_from(value)
+              .unwrap_or_else(|()| panic!("Invalid link type: {value}"));
+          }
+          "checksum" => {
+            package.checksum = Some(value.to_string());
+          }
+          _ => {
+            // Skip unknown properties gracefully
+          }
+        }
       }
-      "resolution" => {
-        package.resolution = Some(value.trim_matches('"').to_string());
+      PropertyValue::Dependencies(dependencies) => {
+        // Store the parsed dependencies in the package
+        for (dep_name, dep_range) in dependencies {
+          let ident = parse_dependency_name_to_ident(dep_name);
+          let descriptor = Descriptor::new(ident, dep_range.to_string());
+          package.dependencies.insert(descriptor.ident().clone(), descriptor);
+        }
       }
-      "languageName" => {
-        package.language_name = crate::package::LanguageName::new(value.to_string());
-      }
-      "linkType" => {
-        package.link_type = LinkType::try_from(value.as_str())
-          .unwrap_or_else(|()| panic!("Invalid link type: {value}"));
-      }
-      "checksum" => {
-        package.checksum = Some(value.to_string());
-      }
-      "dependencies" => {
-        // For now, we'll skip parsing nested dependencies
-        // This will be implemented in a future iteration
-        todo!("parse nested dependencies");
-      }
-      _ => {
-        // Skip unknown properties for now
-        todo!("parse unknown properties");
+      PropertyValue::PeerDependencies(peer_dependencies) => {
+        // Store the parsed peer dependencies in the package
+        for (dep_name, dep_range) in peer_dependencies {
+          let ident = parse_dependency_name_to_ident(dep_name);
+          let descriptor = Descriptor::new(ident, dep_range.to_string());
+          package.peer_dependencies.insert(descriptor.ident().clone(), descriptor);
+        }
       }
     }
   }
@@ -160,43 +203,80 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
 /// "  version: 1.0.0"
 /// "  resolution: \"debug@npm:1.0.0\""
 /// "  linkType: hard"
-fn parse_property_line(input: &str) -> IResult<&str, (String, String)> {
-  alt((parse_simple_property, parse_dependencies_block)).parse(input)
+fn parse_property_line(input: &str) -> IResult<&str, PropertyValue<'_>> {
+  // Try simple property first
+  if let Ok((rest, (key, value))) = parse_simple_property(input) {
+    return Ok((rest, PropertyValue::Simple(key, value)));
+  }
+
+  // Try dependencies block
+  if let Ok((rest, dependencies)) = parse_dependencies_block(input) {
+    return Ok((rest, PropertyValue::Dependencies(dependencies)));
+  }
+
+  // Try peer dependencies block
+  if let Ok((rest, peer_dependencies)) = parse_peer_dependencies_block(input) {
+    return Ok((rest, PropertyValue::PeerDependencies(peer_dependencies)));
+  }
+
+  // If nothing matches, return an error
+  Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Alt)))
+}
+
+/// Enum to represent different types of property values
+#[derive(Debug)]
+enum PropertyValue<'a> {
+  Simple(&'a str, &'a str),
+  Dependencies(Vec<(&'a str, &'a str)>),  // Use Vec instead of HashMap to avoid allocations
+  PeerDependencies(Vec<(&'a str, &'a str)>),  // Use Vec instead of HashMap to avoid allocations
 }
 
 /// Parse a simple key-value property line
-fn parse_simple_property(input: &str) -> IResult<&str, (String, String)> {
+fn parse_simple_property(input: &str) -> IResult<&str, (&str, &str)> {
   let (rest, (_, key, _, _, value, _)) = (
-    // FIXME: is this part of the spec?
     tag("  "), // 2-space indentation
     take_while1(|c: char| c.is_alphanumeric() || c == '_'),
     char(':'),
     space1,
-    is_not("\r\n"), // Take everything until newline
-    newline,
+    take_while1(|c: char| c != '\r' && c != '\n' && c != '#'), // Stop at newline or hash (comments)
+    opt(newline), // Make newline optional to handle end-of-file cases
   )
     .parse(input)?;
 
-  Ok((rest, (key.to_string(), value.to_string())))
+  Ok((rest, (key, value)))
 }
 
-/// Parse a dependencies block (for now, just consume it without parsing contents)
-fn parse_dependencies_block(input: &str) -> IResult<&str, (String, String)> {
-  let (rest, (_, _, _)) = (
-    // FIXME: is this part of the spec?
+/// Parse a dependencies block and return the dependencies as a Vec of borrowed strings
+/// This avoids allocations by keeping references to the original input
+fn parse_dependencies_block(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
+  let (rest, (_, _, dependency_lines)) = (
     tag("  dependencies:"), // 2-space indented dependencies
     newline,
     many0(parse_dependency_line), // Parse nested dependency lines
   )
     .parse(input)?;
 
-  // For now, return empty dependencies marker
-  Ok((rest, ("dependencies".to_string(), "{}".to_string())))
+  // Return the dependency lines as borrowed strings - no allocations!
+  Ok((rest, dependency_lines))
+}
+
+/// Parse a peerDependencies block and return the peer dependencies as a Vec of borrowed strings
+/// This avoids allocations by keeping references to the original input
+fn parse_peer_dependencies_block(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
+  let (rest, (_, _, dependency_lines)) = (
+    tag("  peerDependencies:"), // 2-space indented peer dependencies
+    newline,
+    many0(parse_dependency_line), // Parse nested dependency lines (same format as dependencies)
+  )
+    .parse(input)?;
+
+  // Return the dependency lines as borrowed strings - no allocations!
+  Ok((rest, dependency_lines))
 }
 
 /// Parse a single dependency line with 4-space indentation
 /// Example: "    ms: 0.6.2"
-fn parse_dependency_line(input: &str) -> IResult<&str, (String, String)> {
+fn parse_dependency_line(input: &str) -> IResult<&str, (&str, &str)> {
   let (rest, (_, dep_name, _, _, dep_range, _)) = (
     // FIXME: is this part of the spec?
     tag("    "), // 4-space indentation for dependencies
@@ -208,12 +288,152 @@ fn parse_dependency_line(input: &str) -> IResult<&str, (String, String)> {
   )
     .parse(input)?;
 
-  Ok((rest, (dep_name.to_string(), dep_range.to_string())))
+  // Trim whitespace and remove quotes from the range
+  let clean_range = dep_range.trim().trim_matches('"');
+
+  Ok((rest, (dep_name, clean_range)))
+}
+
+/// Parse a dependency name into an Ident
+/// This handles both scoped (@scope/name) and non-scoped (name) packages
+fn parse_dependency_name_to_ident(dep_name: &str) -> Ident {
+  dep_name.strip_prefix('@').map_or_else(
+    || Ident::new(None, dep_name.to_string()),
+    |stripped| {
+      // Scoped package: @babel/code-frame
+      let parts: Vec<&str> = stripped.splitn(2, '/').collect();
+      if parts.len() == 2 {
+        Ident::new(Some(format!("@{}", parts[0])), parts[1].to_string())
+      } else {
+        // Malformed scoped package, treat as simple name
+        Ident::new(None, dep_name.to_string())
+      }
+    },
+  )
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::collections::HashMap;
+
+  // Helper functions for creating mock data (if needed in the future)
+  #[allow(dead_code)]
+  fn create_mock_dependencies() -> HashMap<String, String> {
+    let mut deps = HashMap::new();
+    deps.insert("ms".to_string(), "0.6.2".to_string());
+    deps.insert("lodash".to_string(), "^4.17.0".to_string());
+    deps
+  }
+
+  #[allow(dead_code)]
+  fn create_mock_peer_dependencies() -> HashMap<String, String> {
+    let mut peer_deps = HashMap::new();
+    peer_deps.insert("lodash".to_string(), "^3.0.0 || ^4.0.0".to_string());
+    peer_deps
+  }
+
+  #[test]
+  fn test_parse_dependency_line_simple() {
+    let input = "    ms: 0.6.2\n";
+    let result = parse_dependency_line(input);
+
+    assert!(result.is_ok(), "Should successfully parse simple dependency line");
+    let (remaining, (dep_name, dep_range)) = result.unwrap();
+    assert_eq!(remaining, "");
+    assert_eq!(dep_name, "ms");
+    assert_eq!(dep_range, "0.6.2");
+  }
+
+  #[test]
+  fn test_parse_dependency_line_scoped_package() {
+    let input = "    @babel/code-frame: ^7.12.11\n";
+    let result = parse_dependency_line(input);
+
+    assert!(result.is_ok(), "Should successfully parse scoped package dependency");
+    let (remaining, (dep_name, dep_range)) = result.unwrap();
+    assert_eq!(remaining, "");
+    assert_eq!(dep_name, "@babel/code-frame");
+    assert_eq!(dep_range, "^7.12.11");
+  }
+
+  #[test]
+  fn test_parse_dependency_line_complex_range() {
+    let input = "    lodash: ^3.0.0 || ^4.0.0\n";
+    let result = parse_dependency_line(input);
+
+    assert!(result.is_ok(), "Should successfully parse complex version range");
+    let (remaining, (dep_name, dep_range)) = result.unwrap();
+    assert_eq!(remaining, "");
+    assert_eq!(dep_name, "lodash");
+    assert_eq!(dep_range, "^3.0.0 || ^4.0.0");
+  }
+
+  #[test]
+  fn test_parse_dependencies_block_single_dependency() {
+    let input = r#"  dependencies:
+    ms: 0.6.2
+"#;
+    let result = parse_dependencies_block(input);
+
+    assert!(result.is_ok(), "Should successfully parse single dependency block");
+    let (remaining, dependencies) = result.unwrap();
+    assert_eq!(remaining, "");
+
+    // Verify the parsed dependencies
+    assert_eq!(dependencies.len(), 1);
+    assert_eq!(dependencies[0], ("ms", "0.6.2"));
+  }
+
+  #[test]
+  fn test_parse_dependencies_block_multiple_dependencies() {
+    let input = r#"  dependencies:
+    ms: 0.6.2
+    lodash: ^4.17.0
+    @babel/core: ^7.12.0
+"#;
+    let result = parse_dependencies_block(input);
+
+    assert!(result.is_ok(), "Should successfully parse multiple dependencies");
+    let (remaining, dependencies) = result.unwrap();
+    assert_eq!(remaining, "");
+
+    // Verify the parsed dependencies
+    assert_eq!(dependencies.len(), 3);
+    assert_eq!(dependencies[0], ("ms", "0.6.2"));
+    assert_eq!(dependencies[1], ("lodash", "^4.17.0"));
+    assert_eq!(dependencies[2], ("@babel/core", "^7.12.0"));
+  }
+
+  #[test]
+  fn test_parse_dependencies_block_empty() {
+    let input = r#"  dependencies:
+"#;
+    let result = parse_dependencies_block(input);
+
+    assert!(result.is_ok(), "Should successfully parse empty dependencies block");
+    let (remaining, dependencies) = result.unwrap();
+    assert_eq!(remaining, "");
+    assert_eq!(dependencies.len(), 0);
+  }
+
+  #[test]
+  fn test_parse_peer_dependencies_block() {
+    let input = r#"  peerDependencies:
+    lodash: ^3.0.0 || ^4.0.0
+    react: ^16.0.0 || ^17.0.0
+"#;
+    let result = parse_peer_dependencies_block(input);
+
+    assert!(result.is_ok(), "Should successfully parse peer dependencies block");
+    let (remaining, peer_dependencies) = result.unwrap();
+    assert_eq!(remaining, "");
+
+    // Verify the parsed peer dependencies
+    assert_eq!(peer_dependencies.len(), 2);
+    assert_eq!(peer_dependencies[0], ("lodash", "^3.0.0 || ^4.0.0"));
+    assert_eq!(peer_dependencies[1], ("react", "^16.0.0 || ^17.0.0"));
+  }
 
   #[test]
   fn test_parse_descriptor_line_simple() {
@@ -406,5 +626,35 @@ mod tests {
     assert_eq!(package.language_name.as_ref(), "unknown");
     assert_eq!(package.link_type, LinkType::Soft);
     assert_eq!(package.checksum, None);
+  }
+
+  #[test]
+  fn test_parse_descriptor_line_multi_descriptor() {
+    let input = r#""c@*, c@workspace:packages/c":"#;
+    let result = parse_descriptor_line(input);
+
+    assert!(result.is_ok(), "Should successfully parse multi-descriptor line");
+    let (remaining, descriptor) = result.unwrap();
+    assert_eq!(remaining, "");
+
+    // Verify the parsed descriptor (should take the first one: c@*)
+    assert_eq!(descriptor.ident().name(), "c");
+    assert_eq!(descriptor.ident().scope(), None);
+    assert_eq!(descriptor.range(), "*");
+  }
+
+  #[test]
+  fn test_parse_descriptor_line_complex_multi_descriptor() {
+    let input = r#""lodash@npm:^3.0.0 || ^4.0.0, lodash@npm:^4.17.0":"#;
+    let result = parse_descriptor_line(input);
+
+    assert!(result.is_ok(), "Should successfully parse complex multi-descriptor line");
+    let (remaining, descriptor) = result.unwrap();
+    assert_eq!(remaining, "");
+
+    // Verify the parsed descriptor (should take the first one)
+    assert_eq!(descriptor.ident().name(), "lodash");
+    assert_eq!(descriptor.ident().scope(), None);
+    assert_eq!(descriptor.range(), "npm:^3.0.0 || ^4.0.0");
   }
 }
