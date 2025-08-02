@@ -46,6 +46,7 @@ struct BenchmarkResult {
   virtual_usage_bytes: Option<usize>,
 }
 
+#[allow(clippy::cast_precision_loss)]
 fn calculate_stats(times: &[f64]) -> (f64, f64, f64, f64) {
   let mean = times.iter().sum::<f64>() / times.len() as f64;
   let variance = times.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / times.len() as f64;

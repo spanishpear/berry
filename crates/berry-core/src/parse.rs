@@ -1316,4 +1316,83 @@ __metadata:
       }
     }
   }
+
+  #[test]
+  fn test_parse_peer_dependencies_meta_real_format() {
+    // Test parsing the actual format found in resolutions-patches.yarn.lock
+    // This demonstrates the parsing issue where the parser fails on real-world data
+    let input = r"  peerDependenciesMeta:
+    graphql-ws:
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    subscriptions-transport-ws:
+      optional: true
+";
+
+    let result = parse_peer_dependencies_meta_block(input);
+
+    match result {
+      Ok((remaining, meta)) => {
+        println!("Successfully parsed peerDependenciesMeta: {meta:?}");
+        println!("Remaining: '{remaining}'");
+        assert_eq!(meta.len(), 4, "Should parse 4 peer dependency meta entries");
+        assert!(remaining.is_empty(), "Should consume all input");
+      }
+      Err(e) => {
+        println!("Failed to parse peerDependenciesMeta: {e:?}");
+        // This test is expected to fail, demonstrating the parsing issue
+        // The parser should be fixed to handle this real-world format
+        panic!("Parser fails on real-world peerDependenciesMeta format: {e:?}");
+      }
+    }
+  }
+
+  #[test]
+  fn test_parse_package_with_peer_dependencies_meta_real_format() {
+    // Test parsing a complete package entry with the real peerDependenciesMeta format
+    let input = r#"  version: 6.0.0
+  resolution: "@actions/github@npm:6.0.0"
+  dependencies:
+    "@actions/http-client": "npm:^2.2.0"
+    "@octokit/core": "npm:^5.0.1"
+    "@octokit/plugin-paginate-rest": "npm:^9.0.0"
+    "@octokit/plugin-rest-endpoint-methods": "npm:^10.0.0"
+  peerDependenciesMeta:
+    graphql-ws:
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    subscriptions-transport-ws:
+      optional: true
+  checksum: 10/d3744a5416c7ba33057b1ed247fa4b30da167a6b490898968e6e03870424906c3b4b1910829dc5b26622393e3f203b6ad26e7f6a2c2e9505dc0f9e915432482a
+  languageName: node
+  linkType: hard
+"#;
+
+    let result = parse_package_properties(input);
+
+    match result {
+      Ok((remaining, package)) => {
+        println!("Successfully parsed package with peerDependenciesMeta");
+        println!("Remaining: '{remaining}'");
+        assert_eq!(
+          package.peer_dependencies_meta.len(),
+          4,
+          "Should parse 4 peer dependency meta entries"
+        );
+        assert!(remaining.is_empty(), "Should consume all input");
+      }
+      Err(e) => {
+        println!("Failed to parse package with peerDependenciesMeta: {e:?}");
+        // This test is expected to fail, demonstrating the parsing issue
+        // The parser should be fixed to handle this real-world format
+        panic!("Parser fails on real-world package with peerDependenciesMeta: {e:?}");
+      }
+    }
+  }
 }
