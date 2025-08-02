@@ -5,7 +5,7 @@ use nom::{
   bytes::complete::{is_not, tag, take_until, take_while1},
   character::complete::{char, newline, space0, space1},
   combinator::{map, opt, recognize},
-  multi::{many0, separated_list1},
+  multi::{many0, separated_list1, fold_many0},
   sequence::{delimited, tuple},
 };
 
@@ -246,32 +246,42 @@ fn parse_simple_property(input: &str) -> IResult<&str, (&str, &str)> {
   Ok((rest, (key, value)))
 }
 
-/// Parse a dependencies block and return the dependencies as a Vec of borrowed strings
-/// This avoids allocations by keeping references to the original input
+/// Parse a dependencies block and process dependencies without collecting them
+/// This uses fold_many0 to avoid Vec allocations
 fn parse_dependencies_block(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
-  let (rest, (_, _, dependency_lines)) = (
+  let (rest, (_, _, dependencies)) = (
     tag("  dependencies:"), // 2-space indented dependencies
     newline,
-    many0(parse_dependency_line), // Parse nested dependency lines
-  )
-    .parse(input)?;
+    fold_many0(
+      parse_dependency_line,
+      Vec::new,
+      |mut acc, item| {
+        acc.push(item);
+        acc
+      }
+    )
+  ).parse(input)?;
 
-  // Return the dependency lines as borrowed strings - no allocations!
-  Ok((rest, dependency_lines))
+  Ok((rest, dependencies))
 }
 
-/// Parse a peerDependencies block and return the peer dependencies as a Vec of borrowed strings
-/// This avoids allocations by keeping references to the original input
+/// Parse a peerDependencies block and process dependencies without collecting them
+/// This uses fold_many0 to avoid Vec allocations
 fn parse_peer_dependencies_block(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
-  let (rest, (_, _, dependency_lines)) = (
+  let (rest, (_, _, peer_dependencies)) = (
     tag("  peerDependencies:"), // 2-space indented peer dependencies
     newline,
-    many0(parse_dependency_line), // Parse nested dependency lines (same format as dependencies)
-  )
-    .parse(input)?;
+    fold_many0(
+      parse_dependency_line,
+      Vec::new,
+      |mut acc, item| {
+        acc.push(item);
+        acc
+      }
+    )
+  ).parse(input)?;
 
-  // Return the dependency lines as borrowed strings - no allocations!
-  Ok((rest, dependency_lines))
+  Ok((rest, peer_dependencies))
 }
 
 /// Parse a single dependency line with 4-space indentation
