@@ -43,7 +43,6 @@ mod tests {
   use rstest::rstest;
   use std::path::PathBuf;
 
-  #[ignore = "This is a work in progress"]
   #[rstest]
   fn test_parse_lockfile_fixtures(#[files("../../fixtures/*.lock")] fixture_path: PathBuf) {
     let contents = load_fixture_from_path(&fixture_path);
@@ -79,13 +78,14 @@ mod tests {
         &remaining[..remaining.len().min(200)]
       );
 
-      // For now, we'll allow some unparsed content but log it
-      // TODO: Fix parser to handle all content properly
+      // Allow only whitespace and newlines to remain unparsed
+      let trimmed_remaining = remaining.trim();
       assert!(
-        remaining.len() <= 1000,
-        "Too much content remaining unparsed ({} bytes) in {}",
+        trimmed_remaining.is_empty(),
+        "Too much content remaining unparsed ({} bytes) in {}: '{}'",
         remaining.len(),
-        filename
+        filename,
+        &trimmed_remaining[..trimmed_remaining.len().min(200)]
       );
     }
 

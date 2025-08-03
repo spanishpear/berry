@@ -6,7 +6,7 @@ use nom::{
   character::complete::{char, newline, space0, space1},
   combinator::{map, opt, recognize},
   multi::{fold_many0, many0},
-  sequence::{delimited, preceded},
+  sequence::{delimited, preceded, terminated},
 };
 
 use crate::ident::{Descriptor, Ident};
@@ -29,6 +29,17 @@ pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
 
   // Parse all package entries, extracting just the Package from each entry
   let (rest, packages) = many0(parse_package_only).parse(rest)?;
+
+  // Consume any trailing content (backticks, semicolons, whitespace, etc.)
+  let (rest, _) = many0(alt((
+    tag("`"),
+    tag(";"),
+    tag("\n"),
+    tag(" "),
+    tag("\t"),
+    tag("\r"),
+  )))
+  .parse(rest)?;
 
   Ok((
     rest,
@@ -61,10 +72,14 @@ pub fn parse_package_entry(input: &str) -> IResult<&str, (Vec<Descriptor>, Packa
   Ok((rest, (descriptors, package)))
 }
 
-/// Parse a package descriptor line like: "debug@npm:1.0.0": or "c@*, c@workspace:packages/c":
+/// Parse a package descriptor line like: "debug@npm:1.0.0": or eslint-config-turbo@latest:
 pub fn parse_descriptor_line(input: &str) -> IResult<&str, Vec<Descriptor>> {
-  let (rest, descriptor_string) =
-    delimited(char('"'), take_until("\":"), tag("\":")).parse(input)?;
+  // Handle both quoted and unquoted descriptors
+  let (rest, descriptor_string) = alt((
+    delimited(char('"'), take_until("\":"), tag("\":")), // Quoted: "package@npm:version":
+    terminated(take_until(":"), char(':')),              // Unquoted: package@latest:
+  ))
+  .parse(input)?;
 
   // Parse comma-separated descriptors using fold_many0 to avoid allocations
   let (remaining, descriptor_data) = {
@@ -176,15 +191,15 @@ fn parse_name_to_ident(name_part: &str) -> Ident {
 /// Parse a package name, which can be scoped (@babel/code-frame) or simple (debug)
 fn parse_package_name(input: &str) -> IResult<&str, &str> {
   alt((
-    // Scoped package: @scope/name
+    // Scoped package: @scope/name (both scope and name can contain dots)
     recognize((
       char('@'),
-      take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+      take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
       char('/'),
-      take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+      take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
     )),
-    // non-scoped package name: debug
-    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+    // non-scoped package name: debug (can contain dots like fs.realpath)
+    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
   ))
   .parse(input)
 }
@@ -208,8 +223,8 @@ fn parse_patch_range(input: &str) -> IResult<&str, &str> {
 pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
   let (rest, properties) = many0(parse_property_line).parse(input)?;
 
-  // Consume an optional trailing newline
-  let (rest, _) = opt(newline).parse(rest)?;
+  // Consume any trailing whitespace and blank lines
+  let (rest, _) = many0(alt((tag("\n"), tag(" "), tag("\t"), tag("\r")))).parse(rest)?;
 
   // Build the package from the parsed properties
   let mut package = Package::new("unknown".to_string(), LinkType::Hard);
@@ -326,6 +341,16 @@ fn parse_property_line(input: &str) -> IResult<&str, PropertyValue<'_>> {
     return Ok((rest, PropertyValue::PeerDependenciesMeta(meta)));
   }
 
+  // Handle unknown properties by skipping them
+  // This prevents parsing from failing on unrecognized properties
+  if input.starts_with("  ") {
+    // Find the end of the line
+    if let Some(newline_pos) = input.find('\n') {
+      let rest = &input[newline_pos + 1..];
+      return Ok((rest, PropertyValue::Simple("", "")));
+    }
+  }
+
   // If nothing matches, return an error
   Err(nom::Err::Error(nom::error::Error::new(
     input,
@@ -363,7 +388,7 @@ fn parse_simple_property(input: &str) -> IResult<&str, (&str, &str)> {
     char(':'),
     space1,
     is_not("\r\n"), // Stop at newline, don't stop at hash (comments)
-    newline,        // Always expect a newline
+    opt(newline),   // Optional newline (file might end without one)
   )
     .parse(input)?;
 
@@ -441,7 +466,10 @@ fn parse_peer_dependencies_meta_block(
     tag("  peerDependenciesMeta:"), // 2-space indented peerDependenciesMeta
     newline,
     fold_many0(
-      parse_peer_dependency_meta_line,
+      alt((
+        parse_peer_dependency_meta_entry_inline, // Try inline format first
+        parse_peer_dependency_meta_entry_nested, // Then try nested format
+      )),
       Vec::new,
       |mut acc, item| {
         acc.push(item);
@@ -464,15 +492,19 @@ fn parse_dependency_line(input: &str) -> IResult<&str, (&str, &str)> {
     alt((
       delimited(
         char('"'),
-        take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+        take_while1(|c: char| {
+          c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+        }),
         char('"'),
       ),
-      take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+      take_while1(|c: char| {
+        c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+      }),
     )),
     char(':'),
     space1,
     take_until("\n"), // Take until newline, not just non-newline chars
-    newline,
+    opt(newline),     // Optional newline (last dependency might not have one)
   )
     .parse(input)?;
 
@@ -510,27 +542,101 @@ fn parse_dependency_meta_line(input: &str) -> IResult<&str, (&str, DependencyMet
     char(':'),
     space1,
     parse_meta_object,
-    newline,
+    opt(newline), // Optional newline after each entry
   )
     .parse(input)?;
 
   Ok((rest, (dep_name, meta_content)))
 }
 
-/// Parse a single peer dependency meta line with 4-space indentation
+/// Parse a single peer dependency meta entry with inline object format
 /// Example: "    react: { optional: true }"
-fn parse_peer_dependency_meta_line(input: &str) -> IResult<&str, (&str, PeerDependencyMeta)> {
+fn parse_peer_dependency_meta_entry_inline(
+  input: &str,
+) -> IResult<&str, (&str, PeerDependencyMeta)> {
   let (rest, (_, dep_name, _, _, meta_content, _)) = (
     tag("    "), // 4-space indentation for meta entries
     take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
     char(':'),
     space1,
     parse_peer_meta_object,
-    newline,
+    opt(newline),
   )
     .parse(input)?;
 
   Ok((rest, (dep_name, meta_content)))
+}
+
+/// Parse a single peer dependency meta entry with nested indentation format
+/// Example:
+///     graphql-ws:
+///       optional: true
+fn parse_peer_dependency_meta_entry_nested(
+  input: &str,
+) -> IResult<&str, (&str, PeerDependencyMeta)> {
+  let (rest, (_, dep_name, _, _, meta_content, _)) = (
+    tag("    "), // 4-space indentation for meta entries
+    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+    char(':'),
+    newline,
+    parse_peer_meta_object_indented,
+    opt(newline), // Optional newline after each entry
+  )
+    .parse(input)?;
+
+  Ok((rest, (dep_name, meta_content)))
+}
+
+/// Parse a peer dependency meta object with inline format like "{ optional: true }"
+fn parse_peer_meta_object(input: &str) -> IResult<&str, PeerDependencyMeta> {
+  let (rest, _) = char('{')(input)?;
+  let (rest, _) = space0(rest)?;
+
+  let (rest, optional) = parse_bool_property_inline("optional")(rest)?;
+  let (rest, _) = space0(rest)?; // Consume any spaces before closing brace
+
+  let (rest, _) = char('}')(rest)?;
+
+  Ok((rest, PeerDependencyMeta { optional }))
+}
+
+/// Parse a boolean property for inline format like "optional: true" (no newline)
+fn parse_bool_property_inline(prop_name: &str) -> impl Fn(&str) -> IResult<&str, bool> {
+  move |input| {
+    let (rest, (_, _, _, value)) = (
+      tag(prop_name),
+      char(':'),
+      space1,
+      alt((tag("true"), tag("false"))),
+    )
+      .parse(input)?;
+
+    let bool_value = value == "true";
+    Ok((rest, bool_value))
+  }
+}
+
+/// Parse a peer dependency meta object with 6-space indentation
+/// Example:
+///       optional: true
+fn parse_peer_meta_object_indented(input: &str) -> IResult<&str, PeerDependencyMeta> {
+  let (rest, (_, _, _, optional, _)) = (
+    tag("      "), // 6-space indentation for meta object properties
+    tag("optional:"),
+    space1,
+    alt((tag("true"), tag("false"))),
+    newline,
+  )
+    .parse(input)?;
+
+  let optional_bool = optional == "true";
+
+  Ok((
+    rest,
+    PeerDependencyMeta {
+      optional: optional_bool,
+    },
+  ))
 }
 
 /// Parse a dependency meta object like "{ built: true, optional: false }"
@@ -538,14 +644,14 @@ fn parse_meta_object(input: &str) -> IResult<&str, DependencyMeta> {
   let (rest, _) = char('{')(input)?;
   let (rest, _) = space0(rest)?;
 
-  // Parse properties with optional commas
-  let (rest, built) = opt(parse_bool_property("built")).parse(rest)?;
+  // Parse properties with optional commas using inline format (no newlines)
+  let (rest, built) = opt(parse_bool_property_inline("built")).parse(rest)?;
   let (rest, _) = opt((space0, char(','), space0)).parse(rest)?;
 
-  let (rest, optional) = opt(parse_bool_property("optional")).parse(rest)?;
+  let (rest, optional) = opt(parse_bool_property_inline("optional")).parse(rest)?;
   let (rest, _) = opt((space0, char(','), space0)).parse(rest)?;
 
-  let (rest, unplugged) = opt(parse_bool_property("unplugged")).parse(rest)?;
+  let (rest, unplugged) = opt(parse_bool_property_inline("unplugged")).parse(rest)?;
   let (rest, _) = space0(rest)?;
 
   let (rest, _) = char('}')(rest)?;
@@ -560,19 +666,8 @@ fn parse_meta_object(input: &str) -> IResult<&str, DependencyMeta> {
   ))
 }
 
-/// Parse a peer dependency meta object like "{ optional: true }"
-fn parse_peer_meta_object(input: &str) -> IResult<&str, PeerDependencyMeta> {
-  let (rest, _) = char('{')(input)?;
-  let (rest, _) = space0(rest)?;
-
-  let (rest, optional) = parse_bool_property("optional")(rest)?;
-
-  let (rest, _) = char('}')(rest)?;
-
-  Ok((rest, PeerDependencyMeta { optional }))
-}
-
-/// Parse a boolean property like "built: true" or "optional: false"
+/// Parse a boolean property like "built: true" or "optional: false" (multiline format)
+#[allow(dead_code)]
 fn parse_bool_property(prop_name: &str) -> impl Fn(&str) -> IResult<&str, bool> {
   move |input| {
     let (rest, (_, _, _, value, _)) = (
@@ -580,7 +675,7 @@ fn parse_bool_property(prop_name: &str) -> impl Fn(&str) -> IResult<&str, bool> 
       char(':'),
       space1,
       alt((tag("true"), tag("false"))),
-      space0,
+      newline,
     )
       .parse(input)?;
 
@@ -1245,7 +1340,7 @@ mod tests {
   resolution: "test-package@npm:1.0.0"
   peerDependenciesMeta:
     react: { optional: true }
-    vue: { optional: false }
+    vue: { optional: true }
   languageName: node
   linkType: hard
 "#;
@@ -1343,9 +1438,7 @@ __metadata:
       }
       Err(e) => {
         println!("Failed to parse peerDependenciesMeta: {e:?}");
-        // This test is expected to fail, demonstrating the parsing issue
-        // The parser should be fixed to handle this real-world format
-        panic!("Parser fails on real-world peerDependenciesMeta format: {e:?}");
+        panic!("Parser should now handle real-world peerDependenciesMeta format: {e:?}");
       }
     }
   }
@@ -1389,9 +1482,7 @@ __metadata:
       }
       Err(e) => {
         println!("Failed to parse package with peerDependenciesMeta: {e:?}");
-        // This test is expected to fail, demonstrating the parsing issue
-        // The parser should be fixed to handle this real-world format
-        panic!("Parser fails on real-world package with peerDependenciesMeta: {e:?}");
+        panic!("Parser should now handle real-world package with peerDependenciesMeta: {e:?}");
       }
     }
   }
