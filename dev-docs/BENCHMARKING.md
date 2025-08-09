@@ -46,6 +46,12 @@ cargo run --bin berry-bench-bin -- -f minimal-berry.lock -v
 # Run all benchmarks
 cargo run --bin berry-bench-bin -- --all -r 5
 
+# Save a baseline for regression checks
+cargo run --bin berry-bench-bin -- --all -r 10 --format json --save-baseline .bench/baseline.json
+
+# Compare against baseline with 5% threshold and fail on regression (for CI)
+cargo run --bin berry-bench-bin -- --all -r 10 --baseline .bench/baseline.json --threshold-ratio-ms-per-kib 0.05 --fail-on-regression
+
 # Detailed Criterion benchmarks
 cargo bench --package berry-bench --bench parser_benchmarks -- --quick
 ```
@@ -153,7 +159,7 @@ heap_usage/heap_small   time:   [1.2025 ms 1.2383 ms 1.2472 ms]
 
 ## Regression Detection
 
-### CLI Tool Regression Detection
+### CLI Tool Regression Detection (relative-to-best and baseline)
 
 Automatically detects regressions by comparing against fastest fixture:
 
@@ -173,6 +179,14 @@ Performance Analysis:
 
 - **Warning**: >50% slower than fastest fixture
 - **Critical**: >100% slower than fastest fixture
+
+Additionally, compare against a stored baseline using normalized ms/KiB:
+
+```bash
+cargo run --bin berry-bench-bin -- --all --baseline .bench/baseline.json --threshold-ratio-ms-per-kib 0.05 --fail-on-regression
+```
+
+This exits with code 1 if any fixture regresses more than 5% in ms/KiB.
 
 ### Criterion Regression Detection
 

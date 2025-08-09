@@ -2,6 +2,9 @@ use berry_core::parse::parse_lockfile;
 use berry_test::load_fixture;
 use clap::Parser;
 use memory_stats::memory_stats;
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use std::time::Instant;
 
 #[derive(Parser)]
@@ -31,9 +34,25 @@ struct Args {
   /// Show detailed timing for each run
   #[arg(short, long)]
   verbose: bool,
+
+  /// Path to a baseline JSON file to compare against
+  #[arg(long)]
+  baseline: Option<String>,
+
+  /// Save current results as a baseline JSON file
+  #[arg(long)]
+  save_baseline: Option<String>,
+
+  /// Allowed slowdown vs baseline for ms/KiB (e.g., 0.05 for 5%)
+  #[arg(long, default_value = "0.05")]
+  threshold_ratio_ms_per_kib: f64,
+
+  /// Fail the process with non-zero exit code if a regression is detected
+  #[arg(long)]
+  fail_on_regression: bool,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct BenchmarkResult {
   fixture: String,
   file_size: usize,
@@ -146,6 +165,58 @@ fn benchmark_fixture(
   }
 }
 
+fn load_baseline(path: &str) -> Option<Vec<BenchmarkResult>> {
+  let Ok(contents) = fs::read_to_string(path) else {
+    return None;
+  };
+  serde_json::from_str::<Vec<BenchmarkResult>>(&contents).ok()
+}
+
+fn save_baseline(path: &str, results: &[BenchmarkResult]) -> std::io::Result<()> {
+  let data = serde_json::to_string_pretty(results).expect("serialize baseline");
+  if let Some(parent) = Path::new(path).parent() {
+    if !parent.as_os_str().is_empty() {
+      fs::create_dir_all(parent)?;
+    }
+  }
+  fs::write(path, data)
+}
+
+fn compare_with_baseline(
+  baseline: &[BenchmarkResult],
+  current: &[BenchmarkResult],
+  threshold_ratio_ms_per_kib: f64,
+) -> (bool, Vec<String>) {
+  let baseline_map: HashMap<&str, &BenchmarkResult> =
+    baseline.iter().map(|b| (b.fixture.as_str(), b)).collect();
+
+  let mut regressions = Vec::new();
+  let mut any_regressed = false;
+
+  for cur in current {
+    if let Some(base) = baseline_map.get(cur.fixture.as_str()) {
+      // Compare normalized ms/KiB
+      let ratio = if base.time_per_kib_ms > 0.0 {
+        cur.time_per_kib_ms / base.time_per_kib_ms
+      } else {
+        1.0
+      };
+      if ratio > 1.0 + threshold_ratio_ms_per_kib {
+        any_regressed = true;
+        regressions.push(format!(
+          "{} regressed: {:.1}% slower (ms/KiB: {:.3} -> {:.3})",
+          cur.fixture,
+          (ratio - 1.0) * 100.0,
+          base.time_per_kib_ms,
+          cur.time_per_kib_ms
+        ));
+      }
+    }
+  }
+
+  (any_regressed, regressions)
+}
+
 fn print_results(results: &[BenchmarkResult], format: &str) {
   if format == "json" {
     println!("{}", serde_json::to_string_pretty(results).unwrap());
@@ -228,6 +299,39 @@ fn main() {
           );
         }
       }
+    }
+  }
+
+  // Baseline comparison and optional failure on regression
+  if let Some(baseline_path) = &args.baseline {
+    if let Some(baseline) = load_baseline(baseline_path) {
+      println!(
+        "\nBaseline Comparison (ms/KiB threshold: +{:.1}%)",
+        args.threshold_ratio_ms_per_kib * 100.0
+      );
+      let (regressed, messages) =
+        compare_with_baseline(&baseline, &results, args.threshold_ratio_ms_per_kib);
+      if messages.is_empty() {
+        println!("✅ No regressions vs baseline");
+      } else {
+        for msg in messages {
+          println!("⚠️  {msg}");
+        }
+      }
+      if regressed && args.fail_on_regression {
+        eprintln!("\nError: performance regression detected vs baseline");
+        std::process::exit(1);
+      }
+    } else {
+      eprintln!("Could not load baseline from {}", baseline_path);
+    }
+  }
+
+  if let Some(save_path) = &args.save_baseline {
+    if let Err(err) = save_baseline(save_path, &results) {
+      eprintln!("Failed to save baseline to {}: {}", save_path, err);
+    } else if args.verbose {
+      println!("Saved baseline to {}", save_path);
     }
   }
 }
