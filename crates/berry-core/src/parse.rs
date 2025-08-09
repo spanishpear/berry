@@ -10,13 +10,19 @@ use nom::{
 };
 
 use crate::ident::{Descriptor, Ident};
-use crate::lockfile::{Lockfile, parse_metadata, parse_yarn_header};
+use crate::locator::Locator;
+use crate::lockfile::{
+  Entry, Lockfile, parse_constraints, parse_metadata, parse_resolutions, parse_yarn_header,
+};
 use crate::metadata::{DependencyMeta, PeerDependencyMeta};
 use crate::package::{LinkType, Package};
 
-/// Parse just the package from a package entry, discarding the descriptors
-fn parse_package_only(input: &str) -> IResult<&str, Package> {
-  map(parse_package_entry, |(_, package)| package).parse(input)
+/// Parse a package entry into a full lockfile Entry
+fn parse_entry(input: &str) -> IResult<&str, Entry> {
+  map(parse_package_entry, |(descriptors, package)| {
+    Entry::new(descriptors, package)
+  })
+  .parse(input)
 }
 
 /// Entrypoint for parsing a yarn lockfile
@@ -27,8 +33,19 @@ pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
   // Consume any blank lines after metadata
   let (rest, _) = opt(newline).parse(rest)?;
 
-  // Parse all package entries, extracting just the Package from each entry
-  let (rest, packages) = many0(parse_package_only).parse(rest)?;
+  // Optionally parse resolutions and constraints if present
+  let (rest, resolutions) = match parse_resolutions(rest) {
+    Ok((rest2, r)) => (rest2, Some(r)),
+    Err(_) => (rest, None),
+  };
+
+  let (rest, constraints) = match parse_constraints(rest) {
+    Ok((rest2, c)) => (rest2, Some(c)),
+    Err(_) => (rest, None),
+  };
+
+  // Parse all package entries as full Entries
+  let (rest, entries) = many0(parse_entry).parse(rest)?;
 
   // Consume any trailing content (backticks, semicolons, whitespace, etc.)
   let (rest, _) = many0(alt((
@@ -45,7 +62,9 @@ pub fn parse_lockfile(file_contents: &str) -> IResult<&str, Lockfile> {
     rest,
     Lockfile {
       metadata,
-      entries: packages,
+      entries,
+      resolutions,
+      constraints,
     },
   ))
 }
@@ -249,7 +268,17 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
           package.version = Some(value.trim_matches('"').to_string());
         }
         "resolution" => {
-          package.resolution = Some(value.trim_matches('"').to_string());
+          let raw = value.trim_matches('"').to_string();
+          // Best-effort parse of the resolution into a Locator: split on '@' first occurrence
+          // Examples: "debug@npm:1.0.0", "a@workspace:packages/a"
+          if let Some(at_index) = raw.find('@') {
+            let (name_part, reference) = raw.split_at(at_index);
+            let ident = parse_name_to_ident(name_part);
+            // split_at keeps the '@' on the right; remove it
+            let reference = reference.trim_start_matches('@').to_string();
+            package.resolution_locator = Some(Locator::new(ident, reference));
+          }
+          package.resolution = Some(raw);
         }
         "languageName" => {
           package.language_name = crate::package::LanguageName::new(value.to_string());
@@ -377,6 +406,7 @@ enum PropertyValue<'a> {
 /// # Examples
 /// ```
 /// use crate::berry_core::parse::parse_simple_property;
+/// ```rust,ignore
 /// let input = r#"  version: 1.0.0"#;
 /// let result = parse_simple_property(input);
 /// assert!(result.is_ok());
@@ -988,6 +1018,8 @@ mod tests {
     assert_eq!(descriptor.ident().name(), "debug");
     assert_eq!(descriptor.ident().scope(), None);
     assert_eq!(descriptor.range(), "npm:1.0.0");
+    assert_eq!(descriptor.range_struct().protocol_str(), Some("npm"));
+    assert_eq!(descriptor.range_struct().selector(), "1.0.0");
   }
 
   #[test]
@@ -1008,6 +1040,8 @@ mod tests {
     assert_eq!(descriptor.ident().name(), "code-frame");
     assert_eq!(descriptor.ident().scope(), Some("@babel"));
     assert_eq!(descriptor.range(), "npm:7.12.11");
+    assert_eq!(descriptor.range_struct().protocol_str(), Some("npm"));
+    assert_eq!(descriptor.range_struct().selector(), "7.12.11");
   }
 
   #[test]
@@ -1028,6 +1062,8 @@ mod tests {
     assert_eq!(descriptor.ident().name(), "a");
     assert_eq!(descriptor.ident().scope(), None);
     assert_eq!(descriptor.range(), "workspace:packages/a");
+    assert_eq!(descriptor.range_struct().protocol_str(), Some("workspace"));
+    assert_eq!(descriptor.range_struct().selector(), "packages/a");
   }
 
   #[test]
@@ -1135,6 +1171,14 @@ mod tests {
     // Verify the parsed package
     assert_eq!(package.version, Some("1.0.0".to_string()));
     assert_eq!(package.resolution, Some("debug@npm:1.0.0".to_string()));
+    // resolution_locator is parsed
+    let locator = package
+      .resolution_locator
+      .as_ref()
+      .expect("locator present");
+    assert_eq!(locator.ident().name(), "debug");
+    assert_eq!(locator.ident().scope(), None);
+    assert_eq!(locator.reference(), "npm:1.0.0");
     assert_eq!(package.language_name.as_ref(), "node");
     assert_eq!(package.link_type, LinkType::Hard);
     assert_eq!(package.checksum, Some("edfec8784737afbeea43cc78c3f56c33b88d3e751cc7220ae7a1c5370ff099e7352703275bdb56ea9967f92961231ce0625f8234d82259047303849671153f03".to_string()));
@@ -1171,6 +1215,12 @@ mod tests {
       package.resolution,
       Some("a@workspace:packages/a".to_string())
     );
+    let locator = package
+      .resolution_locator
+      .as_ref()
+      .expect("locator present");
+    assert_eq!(locator.ident().name(), "a");
+    assert_eq!(locator.reference(), "workspace:packages/a");
     assert_eq!(package.language_name.as_ref(), "unknown");
     assert_eq!(package.link_type, LinkType::Soft);
     assert_eq!(package.checksum, None);
@@ -1250,6 +1300,13 @@ mod tests {
       descriptor.range(),
       "patch:is-odd@npm%3A3.0.1#~/.yarn/patches/is-odd-npm-3.0.1-93c3c3f41b.patch"
     );
+    assert_eq!(descriptor.range_struct().protocol_str(), Some("patch"));
+    assert!(
+      descriptor
+        .range_struct()
+        .selector()
+        .starts_with("is-odd@npm%3A3.0.1#")
+    );
   }
 
   #[test]
@@ -1273,6 +1330,13 @@ mod tests {
     assert_eq!(
       descriptor.range(),
       "patch:typescript@npm%3A^5.8.3#optional!builtin<compat/typescript>"
+    );
+    assert_eq!(descriptor.range_struct().protocol_str(), Some("patch"));
+    assert!(
+      descriptor
+        .range_struct()
+        .selector()
+        .starts_with("typescript@npm%3A^5.8.3#optional!builtin<compat/typescript>")
     );
   }
 
@@ -1523,13 +1587,13 @@ __metadata:
 
     match result {
       Ok((remaining, lockfile)) => {
-        println!("Successfully parsed {} packages", lockfile.entries.len());
+        println!("Successfully parsed {} entries", lockfile.entries.len());
         // print first 100 chars of remaining
         println!(
           "First 100 chars of remaining: '{}'",
           &remaining[..100.min(remaining.len())]
         );
-        assert_eq!(lockfile.entries.len(), 2, "Should parse 2 packages");
+        assert_eq!(lockfile.entries.len(), 2, "Should parse 2 entries");
         assert!(remaining.is_empty(), "Should consume all input");
       }
       Err(e) => {

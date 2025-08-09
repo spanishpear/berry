@@ -1,4 +1,5 @@
 use crate::ident::{Descriptor, Ident};
+use crate::locator::Locator;
 use crate::metadata::{DependencyMeta, PeerDependencyMeta};
 use std::collections::HashMap;
 
@@ -70,8 +71,10 @@ pub struct Package {
   /// Version of the package, if available
   pub version: Option<String>,
 
-  /// Resolution string for the package
+  /// Resolution string for the package (raw, for round-trip)
   pub resolution: Option<String>,
+  /// Parsed resolution into a Locator (ident + reference)
+  pub resolution_locator: Option<Locator>,
 
   /// The "language" of the package (eg. `node`), for use with multi-linkers.
   pub language_name: LanguageName,
@@ -104,10 +107,6 @@ pub struct Package {
   /// We don't need binaries in resolution, but we do neeed them to keep `yarn run` fast
   /// else we have to parse and read all of the zipfiles
   pub bin: HashMap<String, String>,
-
-  /// Any additional simple properties we don't explicitly model yet
-  /// Ensures that we don't drop information from the lockfile
-  pub other_fields: HashMap<String, String>,
 }
 
 impl Package {
@@ -115,6 +114,7 @@ impl Package {
     Self {
       version: None,
       resolution: None,
+      resolution_locator: None,
       language_name: LanguageName::new(language_name),
       link_type,
       checksum: None,
@@ -124,7 +124,6 @@ impl Package {
       peer_dependencies: HashMap::new(),
       peer_dependencies_meta: HashMap::new(),
       bin: HashMap::new(),
-      other_fields: HashMap::new(),
     }
   }
 

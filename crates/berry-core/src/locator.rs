@@ -15,3 +15,17 @@ pub struct Locator {
   /// A package reference uniquely identifies a package (eg. `1.2.3`).
   reference: String,
 }
+
+impl Locator {
+  pub fn new(ident: Ident, reference: String) -> Self {
+    Self { ident, reference }
+  }
+
+  pub fn ident(&self) -> &Ident {
+    &self.ident
+  }
+
+  pub fn reference(&self) -> &str {
+    &self.reference
+  }
+}

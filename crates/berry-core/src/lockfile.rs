@@ -1,8 +1,11 @@
-use crate::package::LockfileEntry;
+use crate::ident::Descriptor;
+use crate::package::Package;
 use nom::{
   IResult, Parser,
-  bytes::complete::{is_not, tag, take_while},
+  bytes::complete::{is_not, tag, take_while, take_while1},
   character::complete::{char, newline, space1},
+  combinator::opt,
+  multi::fold_many0,
   sequence::{pair, preceded, separated_pair, terminated},
 };
 
@@ -12,7 +15,27 @@ pub struct Lockfile {
   /// Lockfile version and cache key
   pub metadata: Metadata,
   /// The entries in the lockfile
-  pub entries: Vec<LockfileEntry>,
+  pub entries: Vec<Entry>,
+  /// Optional resolutions section (key -> value)
+  pub resolutions: Option<Vec<(String, String)>>,
+  /// Optional constraints section (key -> value)
+  pub constraints: Option<Vec<(String, String)>>,
+}
+
+/// A single lockfile entry is a mapping of one or more descriptors to a single package
+#[derive(Debug)]
+pub struct Entry {
+  pub descriptors: Vec<Descriptor>,
+  pub package: Package,
+}
+
+impl Entry {
+  pub fn new(descriptors: Vec<Descriptor>, package: Package) -> Self {
+    Self {
+      descriptors,
+      package,
+    }
+  }
 }
 
 /// The start of the metadata block
@@ -89,8 +112,99 @@ pub(crate) fn parse_yarn_header(input: &str) -> IResult<&str, (&str, &str)> {
   .parse(input)
 }
 
+/// Parse a single top-level key-value line indented with two spaces: `  key: value`.
+fn parse_top_kv_line(input: &str) -> IResult<&str, (&str, &str)> {
+  let (rest, (_, key, _, _, val, _)) = (
+    tag("  "),
+    take_while1(|c: char| c != ':' && c != '\n' && c != '\r'),
+    char(':'),
+    space1,
+    is_not("\r\n"),
+    opt(newline),
+  )
+    .parse(input)?;
+
+  Ok((rest, (key, val)))
+}
+
+/// Parse a top-level block like:
+/// resolutions:\n
+///   foo@^1: npm:1.2.3\n
+fn parse_top_level_kv_block<'a>(
+  header: &'static str,
+) -> impl Fn(&'a str) -> IResult<&'a str, Vec<(&'a str, &'a str)>> {
+  move |input: &str| {
+    let (rest, (_, _, entries)) = (
+      tag(header),
+      newline,
+      fold_many0(parse_top_kv_line, Vec::new, |mut acc, item| {
+        acc.push(item);
+        acc
+      }),
+    )
+      .parse(input)?;
+
+    Ok((rest, entries))
+  }
+}
+
+pub(crate) fn parse_resolutions(input: &str) -> IResult<&str, Vec<(String, String)>> {
+  let (rest, entries) = parse_top_level_kv_block("resolutions:")(input)?;
+  let owned = entries
+    .into_iter()
+    .map(|(k, v)| {
+      (
+        k.trim_matches('"').trim().to_string(),
+        v.trim_matches('"').to_string(),
+      )
+    })
+    .collect();
+  Ok((rest, owned))
+}
+
+pub(crate) fn parse_constraints(input: &str) -> IResult<&str, Vec<(String, String)>> {
+  let (rest, entries) = parse_top_level_kv_block("constraints:")(input)?;
+  let owned = entries
+    .into_iter()
+    .map(|(k, v)| (k.trim().to_string(), v.trim_matches('"').to_string()))
+    .collect();
+  Ok((rest, owned))
+}
+
 #[cfg(test)]
-mod tests {
+mod tests_parse_r_c {
+  use super::*;
+
+  #[test]
+  fn test_parse_top_level_resolutions_block() {
+    let input = r#"resolutions:
+  lodash@^4.0.0: npm:4.17.21
+  "@scope/pkg@^1": "npm:^1.2.3"
+"#;
+    let (rest, resolutions) = parse_resolutions(input).expect("parse resolutions");
+    assert!(rest.is_empty());
+    assert_eq!(resolutions.len(), 2);
+    assert_eq!(resolutions[0].0, "lodash@^4.0.0");
+    assert_eq!(resolutions[0].1, "npm:4.17.21");
+    assert_eq!(resolutions[1].0, "@scope/pkg@^1");
+    assert_eq!(resolutions[1].1, "npm:^1.2.3");
+  }
+
+  #[test]
+  fn test_parse_top_level_constraints_block() {
+    let input = r#"constraints:
+  react@^18: npm:^18.2.0
+"#;
+    let (rest, constraints) = parse_constraints(input).expect("parse constraints");
+    assert!(rest.is_empty());
+    assert_eq!(constraints.len(), 1);
+    assert_eq!(constraints[0].0, "react@^18");
+    assert_eq!(constraints[0].1, "npm:^18.2.0");
+  }
+}
+
+#[cfg(test)]
+mod tests_header_meta {
   use super::*;
   use nom::{
     AsChar, Parser, bytes::complete::take_while, character::complete::newline, sequence::terminated,
