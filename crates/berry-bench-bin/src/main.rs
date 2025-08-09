@@ -44,6 +44,9 @@ struct BenchmarkResult {
   runs: usize,
   heap_usage_bytes: Option<usize>,
   virtual_usage_bytes: Option<usize>,
+  // Derived metrics
+  time_per_kib_ms: f64,
+  mb_per_s: f64,
 }
 
 #[allow(clippy::cast_precision_loss)]
@@ -118,6 +121,16 @@ fn benchmark_fixture(
 
   let (mean, min, max, std_dev) = calculate_stats(&times);
 
+  // Derived metrics
+  let kib = file_size as f64 / 1024.0;
+  let time_per_kib_ms = if kib > 0.0 { mean / kib } else { 0.0 };
+  let mb = file_size as f64 / 1_000_000.0;
+  let mb_per_s = if mean > 0.0 {
+    mb / (mean / 1000.0)
+  } else {
+    f64::INFINITY
+  };
+
   BenchmarkResult {
     fixture: fixture_name.to_string(),
     file_size,
@@ -128,6 +141,8 @@ fn benchmark_fixture(
     runs,
     heap_usage_bytes: Some(heap_usage),
     virtual_usage_bytes: Some(virtual_usage),
+    time_per_kib_ms,
+    mb_per_s,
   }
 }
 
@@ -137,24 +152,21 @@ fn print_results(results: &[BenchmarkResult], format: &str) {
   } else {
     println!("\nBenchmark Results:");
     println!(
-      "{:<25} {:<12} {:<12} {:<12} {:<12} {:<12}",
-      "Fixture", "Size (bytes)", "Mean (ms)", "Min (ms)", "Max (ms)", "Heap (bytes)"
+      "{:<28} {:>12} {:>12} {:>12} {:>12} {:>12} {:>12}",
+      "Fixture", "Bytes", "Mean (ms)", "Min (ms)", "Max (ms)", "ms/KiB", "MB/s"
     );
-    println!("{:-<97}", "");
+    println!("{:-<104}", "");
 
     for result in results {
-      let heap_str = result
-        .heap_usage_bytes
-        .map_or_else(|| "N/A".to_string(), |h| h.to_string());
-
       println!(
-        "{:<25} {:<12} {:<12.3} {:<12.3} {:<12.3} {:<12}",
+        "{:<28} {:>12} {:>12.3} {:>12.3} {:>12.3} {:>12.3} {:>12.2}",
         result.fixture,
         result.file_size,
         result.mean_time_ms,
         result.min_time_ms,
         result.max_time_ms,
-        heap_str
+        result.time_per_kib_ms,
+        result.mb_per_s
       );
     }
   }
@@ -192,28 +204,27 @@ fn main() {
 
   print_results(&results, &args.format);
 
-  // Simple regression detection
+  // Simple regression detection using normalized metric (ms per KiB)
   if results.len() > 1 {
-    println!("\nPerformance Analysis:");
+    println!("\nPerformance Analysis (normalized by size):");
 
-    // Check for obvious regressions (>50% slower than fastest)
-    let fastest = results
+    let best = results
       .iter()
-      .min_by(|a, b| a.mean_time_ms.partial_cmp(&b.mean_time_ms).unwrap())
+      .min_by(|a, b| a.time_per_kib_ms.partial_cmp(&b.time_per_kib_ms).unwrap())
       .unwrap();
 
     for result in &results {
-      if result.fixture != fastest.fixture {
-        let ratio = result.mean_time_ms / fastest.mean_time_ms;
+      if result.fixture != best.fixture {
+        let ratio = result.time_per_kib_ms / best.time_per_kib_ms;
         if ratio > 1.5 {
           println!(
-            "⚠️  {} is {:.1}x slower than {} (potential regression)",
-            result.fixture, ratio, fastest.fixture
+            "⚠️  {} is {:.1}x slower than {} (ms/KiB: {:.3} vs {:.3})",
+            result.fixture, ratio, best.fixture, result.time_per_kib_ms, best.time_per_kib_ms
           );
         } else {
           println!(
-            "✅ {} performance looks normal ({:.1}x vs fastest)",
-            result.fixture, ratio
+            "✅ {} looks fine (ms/KiB {:.3}, best {:.3})",
+            result.fixture, result.time_per_kib_ms, best.time_per_kib_ms
           );
         }
       }

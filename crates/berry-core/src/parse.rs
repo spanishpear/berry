@@ -219,7 +219,8 @@ fn parse_package_name(input: &str) -> IResult<&str, &str> {
 /// Parse protocol part like npm, workspace, git, etc.
 /// TODO: should we validate the protocol? e.g. npm, workspace, git, file, root, etc.
 fn parse_protocol(input: &str) -> IResult<&str, &str> {
-  take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_').parse(input)
+  // Support common protocol tokens including git+ssh
+  take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '+').parse(input)
 }
 
 /// Parse patch range which can be complex like:
@@ -243,32 +244,30 @@ pub fn parse_package_properties(input: &str) -> IResult<&str, Package> {
 
   for property_value in properties {
     match property_value {
-      PropertyValue::Simple(key, value) => {
-        match key {
-          "version" => {
-            package.version = Some(value.trim_matches('"').to_string());
-          }
-          "resolution" => {
-            package.resolution = Some(value.trim_matches('"').to_string());
-          }
-          "languageName" => {
-            package.language_name = crate::package::LanguageName::new(value.to_string());
-          }
-          "linkType" => {
-            package.link_type =
-              LinkType::try_from(value).unwrap_or_else(|()| panic!("Invalid link type: {value}"));
-          }
-          "checksum" => {
-            package.checksum = Some(value.to_string());
-          }
-          "conditions" => {
-            package.conditions = Some(value.to_string());
-          }
-          _ => {
-            // Skip unknown properties gracefully
-          }
+      PropertyValue::Simple(key, value) => match key {
+        "version" => {
+          package.version = Some(value.trim_matches('"').to_string());
         }
-      }
+        "resolution" => {
+          package.resolution = Some(value.trim_matches('"').to_string());
+        }
+        "languageName" => {
+          package.language_name = crate::package::LanguageName::new(value.to_string());
+        }
+        "linkType" => {
+          package.link_type =
+            LinkType::try_from(value).unwrap_or_else(|()| panic!("Invalid link type: {value}"));
+        }
+        "checksum" => {
+          package.checksum = Some(value.to_string());
+        }
+        "conditions" => {
+          package.conditions = Some(value.to_string());
+        }
+        _ => {
+          panic!("Unknown property encountered in package entry: {key}");
+        }
+      },
       PropertyValue::Dependencies(dependencies) => {
         // Store the parsed dependencies in the package
         for (dep_name, dep_range) in dependencies {
@@ -353,15 +352,7 @@ fn parse_property_line(input: &str) -> IResult<&str, PropertyValue<'_>> {
     return Ok((rest, PropertyValue::PeerDependenciesMeta(meta)));
   }
 
-  // Handle unknown properties by skipping them
-  // This prevents parsing from failing on unrecognized properties
-  if input.starts_with("  ") {
-    // Find the end of the line
-    if let Some(newline_pos) = input.find('\n') {
-      let rest = &input[newline_pos + 1..];
-      return Ok((rest, PropertyValue::Simple("", "")));
-    }
-  }
+  // Unknown properties should not be silently skipped
 
   // If nothing matches, return an error
   Err(nom::Err::Error(nom::error::Error::new(
@@ -461,10 +452,17 @@ fn parse_dependencies_meta_block(input: &str) -> IResult<&str, Vec<(&str, Depend
   let (rest, (_, _, meta)) = (
     tag("  dependenciesMeta:"), // 2-space indented dependenciesMeta
     newline,
-    fold_many0(parse_dependency_meta_line, Vec::new, |mut acc, item| {
-      acc.push(item);
-      acc
-    }),
+    fold_many0(
+      alt((
+        parse_dependency_meta_entry_inline, // Try inline format first
+        parse_dependency_meta_entry_nested, // Then try nested format
+      )),
+      Vec::new,
+      |mut acc, item| {
+        acc.push(item);
+        acc
+      },
+    ),
   )
     .parse(input)?;
 
@@ -532,7 +530,9 @@ fn parse_dependency_line(input: &str) -> IResult<&str, (&str, &str)> {
 fn parse_bin_line(input: &str) -> IResult<&str, (&str, &str)> {
   let (rest, (_, bin_name, _, _, bin_path, _)) = (
     tag("    "), // 4-space indentation for bin entries
-    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+    take_while1(|c: char| {
+      c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+    }),
     char(':'),
     space1,
     is_not("\r\n"),
@@ -548,10 +548,22 @@ fn parse_bin_line(input: &str) -> IResult<&str, (&str, &str)> {
 
 /// Parse a single dependency meta line with 4-space indentation
 /// Example: "    typescript: { built: true }"
-fn parse_dependency_meta_line(input: &str) -> IResult<&str, (&str, DependencyMeta)> {
+fn parse_dependency_meta_entry_inline(input: &str) -> IResult<&str, (&str, DependencyMeta)> {
   let (rest, (_, dep_name, _, _, meta_content, _)) = (
     tag("    "), // 4-space indentation for meta entries
-    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+    // Allow quoted or unquoted dependency names
+    alt((
+      delimited(
+        char('"'),
+        take_while1(|c: char| {
+          c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+        }),
+        char('"'),
+      ),
+      take_while1(|c: char| {
+        c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+      }),
+    )),
     char(':'),
     space1,
     parse_meta_object,
@@ -562,6 +574,84 @@ fn parse_dependency_meta_line(input: &str) -> IResult<&str, (&str, DependencyMet
   Ok((rest, (dep_name, meta_content)))
 }
 
+/// Parse a single dependency meta entry with nested indentation format
+/// Example:
+///     typescript:
+///       built: true
+///       optional: false
+fn parse_dependency_meta_entry_nested(input: &str) -> IResult<&str, (&str, DependencyMeta)> {
+  let (rest, (_, dep_name, _, _, meta_content, _)) = (
+    tag("    "), // 4-space indentation for meta entries
+    // Allow quoted or unquoted dependency names
+    alt((
+      delimited(
+        char('"'),
+        take_while1(|c: char| {
+          c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+        }),
+        char('"'),
+      ),
+      take_while1(|c: char| {
+        c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+      }),
+    )),
+    char(':'),
+    newline,
+    parse_dependency_meta_object_indented,
+    opt(newline), // Optional newline after each entry
+  )
+    .parse(input)?;
+
+  Ok((rest, (dep_name, meta_content)))
+}
+
+/// Parse a dependency meta object with 6-space indentation, supporting built/optional/unplugged
+fn parse_dependency_meta_object_indented(input: &str) -> IResult<&str, DependencyMeta> {
+  // Helper to parse a single 6-space-indented boolean line for a given property name
+  fn parse_indented_bool_line<'a>(
+    prop: &'static str,
+  ) -> impl Fn(&'a str) -> IResult<&'a str, bool> {
+    move |input: &str| {
+      let (rest, (_, _, _, _, value, _)) = (
+        tag("      "),
+        tag(prop),
+        char(':'),
+        space1,
+        alt((tag("true"), tag("false"))),
+        newline,
+      )
+        .parse(input)?;
+      Ok((rest, value == "true"))
+    }
+  }
+
+  // Accumulate any number of built/optional/unplugged lines in any order
+  let init = || (None, None, None);
+  let (rest, (built, optional, unplugged)) = fold_many0(
+    alt((
+      map(parse_indented_bool_line("built"), |v| (Some(v), None, None)),
+      map(parse_indented_bool_line("optional"), |v| {
+        (None, Some(v), None)
+      }),
+      map(parse_indented_bool_line("unplugged"), |v| {
+        (None, None, Some(v))
+      }),
+    )),
+    init,
+    |(b_acc, o_acc, u_acc), (b, o, u)| (b.or(b_acc), o.or(o_acc), u.or(u_acc)),
+  )
+  .parse(input)?;
+
+  Ok((
+    rest,
+    DependencyMeta {
+      built,
+      optional,
+      unplugged,
+    },
+  ))
+}
+
 /// Parse a single peer dependency meta entry with inline object format
 /// Example: "    react: { optional: true }"
 fn parse_peer_dependency_meta_entry_inline(
@@ -569,7 +659,19 @@ fn parse_peer_dependency_meta_entry_inline(
 ) -> IResult<&str, (&str, PeerDependencyMeta)> {
   let (rest, (_, dep_name, _, _, meta_content, _)) = (
     tag("    "), // 4-space indentation for meta entries
-    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+    // Allow quoted or unquoted dependency names
+    alt((
+      delimited(
+        char('"'),
+        take_while1(|c: char| {
+          c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+        }),
+        char('"'),
+      ),
+      take_while1(|c: char| {
+        c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+      }),
+    )),
     char(':'),
     space1,
     parse_peer_meta_object,
@@ -589,7 +691,19 @@ fn parse_peer_dependency_meta_entry_nested(
 ) -> IResult<&str, (&str, PeerDependencyMeta)> {
   let (rest, (_, dep_name, _, _, meta_content, _)) = (
     tag("    "), // 4-space indentation for meta entries
-    take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/'),
+    // Allow quoted or unquoted dependency names
+    alt((
+      delimited(
+        char('"'),
+        take_while1(|c: char| {
+          c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+        }),
+        char('"'),
+      ),
+      take_while1(|c: char| {
+        c.is_alphanumeric() || c == '-' || c == '_' || c == '@' || c == '/' || c == '.'
+      }),
+    )),
     char(':'),
     newline,
     parse_peer_meta_object_indented,

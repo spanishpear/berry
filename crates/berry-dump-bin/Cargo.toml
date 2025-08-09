@@ -1,0 +1,12 @@
+[package]
+authors.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+name                 = "berry-dump-bin"
+repository.workspace = true
+version.workspace    = true
+
+[dependencies]
+berry-core = { path = "../berry-core" }
+berry-test = { path = "../berry-test" }
+clap       = { version = "4", features = ["derive"] }

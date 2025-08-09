@@ -104,6 +104,10 @@ pub struct Package {
   /// We don't need binaries in resolution, but we do neeed them to keep `yarn run` fast
   /// else we have to parse and read all of the zipfiles
   pub bin: HashMap<String, String>,
+
+  /// Any additional simple properties we don't explicitly model yet
+  /// Ensures that we don't drop information from the lockfile
+  pub other_fields: HashMap<String, String>,
 }
 
 impl Package {
@@ -120,6 +124,7 @@ impl Package {
       peer_dependencies: HashMap::new(),
       peer_dependencies_meta: HashMap::new(),
       bin: HashMap::new(),
+      other_fields: HashMap::new(),
     }
   }
 

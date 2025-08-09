@@ -104,6 +104,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "berry-dump-bin"
+version = "0.1.0"
+dependencies = [
+ "berry-core",
+ "berry-test",
+ "clap",
+]
+
+[[package]]
 name = "berry-node-bindings"
 version = "0.0.0"
 dependencies = [
