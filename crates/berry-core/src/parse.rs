@@ -95,13 +95,17 @@ pub fn parse_package_entry(input: &str) -> IResult<&str, (Vec<Descriptor>, Packa
 pub fn parse_descriptor_line(input: &str) -> IResult<&str, Vec<Descriptor>> {
   // Handle optional '? ' prefix for conditional packages
   let (rest, _) = opt(tag("? ")).parse(input)?;
-  
+
   // Handle both quoted and unquoted descriptors
   let (rest, descriptor_string) = alt((
     delimited(char('"'), take_until("\":"), tag("\":")), // Quoted: "package@npm:version":
     // Handle very long descriptor lines that wrap: "very long descriptor..."\n:
-    delimited(char('"'), take_until("\""), terminated(char('"'), preceded(newline, char(':')))),
-    terminated(take_until(":"), char(':')),              // Unquoted: package@latest:
+    delimited(
+      char('"'),
+      take_until("\""),
+      terminated(char('"'), preceded(newline, char(':'))),
+    ),
+    terminated(take_until(":"), char(':')), // Unquoted: package@latest:
   ))
   .parse(rest)?;
 
@@ -145,8 +149,11 @@ pub fn parse_descriptor_line(input: &str) -> IResult<&str, Vec<Descriptor>> {
   if !remaining.is_empty() {
     // For debugging: show what wasn't consumed (only in debug builds)
     #[cfg(debug_assertions)]
-    eprintln!("Warning: Descriptor parsing didn't consume entire string. Remaining: {:?}", &remaining[..remaining.len().min(100)]);
-    
+    eprintln!(
+      "Warning: Descriptor parsing didn't consume entire string. Remaining: {:?}",
+      &remaining[..remaining.len().min(100)]
+    );
+
     // For now, we'll accept partial parsing and continue
     // This allows the parser to be more resilient to edge cases
   }

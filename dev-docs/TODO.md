@@ -3,6 +3,7 @@
 ## Current Status
 
 **Production Ready**:
+
 - All tests passing (23/23)
 - Zero clippy warnings
 - Zero compilation errors
@@ -12,6 +13,7 @@
 - Complete benchmarking infrastructure
 
 **Yarn v4 Compatibility**:
+
 - ✅ **Basic protocols**: `npm:`, `workspace:`, `*` (90% support)
 - ✅ **Patch protocol**: `patch:` with complex ranges (20% advanced protocols)
 - ❌ **Other advanced protocols**: `git:`, `file:`, `portal:`, `exec:`, `link:` (0% support)
@@ -20,6 +22,7 @@
 - ❌ **Remaining features**: `resolutions`, `constraints` (70% support)
 
 **Performance Achieved**:
+
 - Small files (~1KB): 6-7 microseconds
 - Medium files (~2KB): 2-3 microseconds
 - Large files (~40KB): 5 microseconds
@@ -53,8 +56,8 @@
 
 - [ ] **Large fixture benchmarks** - Add support for very large lockfiles (>100KB)
 - [ ] **Memory allocation tracking** - Implement detailed allocation counting during parsing
-- [ ] **Continuous benchmarking** - Set up CI/CD pipeline for performance regression detection
-- [ ] **Performance regression alerts** - Automated alerts when performance degrades
+- [x] **Continuous benchmarking** - CLI supports JSON output and baseline compare for CI
+- [x] **Performance regression alerts** - Baseline comparison with configurable thresholds and CI-friendly exit code
 
 ### Integration & Deployment
 
@@ -109,7 +112,3 @@
 - [x] **Zero allocations** during parsing phase ✅ **ACHIEVED**
 - [x] **Minimal allocations** for final data structures ✅ **ACHIEVED**
 - [ ] **Regression detection** - Automated alerts for >5% performance degradation
-
-
-
-

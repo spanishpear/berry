@@ -217,6 +217,37 @@ fn compare_with_baseline(
   (any_regressed, regressions)
 }
 
+fn discover_all_fixture_names() -> Vec<String> {
+  // Locate the fixtures directory relative to this crate
+  let fixtures_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+    .parent()
+    .unwrap()
+    .parent()
+    .unwrap()
+    .join("fixtures");
+
+  let mut names: Vec<String> = fs::read_dir(&fixtures_dir)
+    .unwrap_or_else(|e| {
+      panic!(
+        "Failed to read fixtures dir {}: {e}",
+        fixtures_dir.display()
+      )
+    })
+    .filter_map(|entry| {
+      let entry = entry.ok()?;
+      let path = entry.path();
+      if path.extension()?.to_str()? == "lock" {
+        path.file_name()?.to_str().map(|s| s.to_string())
+      } else {
+        None
+      }
+    })
+    .collect();
+
+  names.sort();
+  names
+}
+
 fn print_results(results: &[BenchmarkResult], format: &str) {
   if format == "json" {
     println!("{}", serde_json::to_string_pretty(results).unwrap());
@@ -249,14 +280,7 @@ fn main() {
   let fixtures = if let Some(fixture) = args.fixture {
     vec![fixture]
   } else if args.all {
-    vec![
-      "minimal-berry.lock".to_string(),
-      "workspaces.yarn.lock".to_string(),
-      "yarn4-mixed-protocol.lock".to_string(),
-      "yarn4-resolution.lock".to_string(),
-      "yarn4-patch.lock".to_string(),
-      "auxiliary-packages.yarn.lock".to_string(),
-    ]
+    discover_all_fixture_names()
   } else {
     // Default to a few key fixtures
     vec![

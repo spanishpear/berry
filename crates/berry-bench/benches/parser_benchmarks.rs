@@ -2,6 +2,8 @@ use berry_core::parse::parse_lockfile;
 use berry_test::load_fixture;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use memory_stats::memory_stats;
+use std::fs;
+use std::path::Path;
 use std::time::Instant;
 
 /// Benchmark parsing with different fixture sizes
@@ -263,6 +265,53 @@ fn benchmark_input_characteristics(c: &mut Criterion) {
   group.finish();
 }
 
+/// Benchmark all fixtures discovered in the fixtures directory
+fn benchmark_all_fixtures(c: &mut Criterion) {
+  let mut group = c.benchmark_group("all_fixtures");
+
+  // Discover fixtures directory relative to this crate
+  let fixtures_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+    .parent()
+    .unwrap()
+    .parent()
+    .unwrap()
+    .join("fixtures");
+
+  let mut fixtures: Vec<String> = fs::read_dir(&fixtures_dir)
+    .unwrap_or_else(|e| {
+      panic!(
+        "Failed to read fixtures dir {}: {e}",
+        fixtures_dir.display()
+      )
+    })
+    .filter_map(|entry| {
+      let entry = entry.ok()?;
+      let path = entry.path();
+      if path.extension()?.to_str()? == "lock" {
+        path.file_name()?.to_str().map(|s| s.to_string())
+      } else {
+        None
+      }
+    })
+    .collect();
+
+  fixtures.sort();
+
+  for fixture_name in fixtures {
+    let fixture = load_fixture(&fixture_name);
+    let label = format!("{}", fixture_name.replace('.', "_").replace('-', "_"));
+    group.bench_function(label, |b| {
+      b.iter(|| {
+        let result = parse_lockfile(black_box(&fixture));
+        assert!(result.is_ok(), "Should parse {fixture_name} successfully");
+        result.unwrap().1
+      });
+    });
+  }
+
+  group.finish();
+}
+
 criterion_group!(
   benches,
   benchmark_fixtures,
@@ -272,5 +321,6 @@ criterion_group!(
   benchmark_zero_allocation,
   benchmark_individual_functions,
   benchmark_input_characteristics,
+  benchmark_all_fixtures,
 );
 criterion_main!(benches);
