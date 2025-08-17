@@ -176,10 +176,10 @@ fn load_baseline(path: &str) -> Option<Vec<BenchmarkResult>> {
 
 fn save_baseline(path: &str, results: &[BenchmarkResult]) -> std::io::Result<()> {
   let data = serde_json::to_string_pretty(results).expect("serialize baseline");
-  if let Some(parent) = Path::new(path).parent() {
-    if !parent.as_os_str().is_empty() {
-      fs::create_dir_all(parent)?;
-    }
+  if let Some(parent) = Path::new(path).parent()
+    && !parent.as_os_str().is_empty()
+  {
+    fs::create_dir_all(parent)?;
   }
   fs::write(path, data)
 }
