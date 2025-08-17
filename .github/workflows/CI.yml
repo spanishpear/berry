@@ -111,7 +111,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # we are cheap, and don't care much right now about older nodes
+        # we are cheap, and don't care much right now about older nodess
         node:
           - '22'
     runs-on: ubuntu-latest
