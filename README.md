@@ -76,7 +76,7 @@ cargo build --release --workspace
 ### Testing
 
 ```bash
-# Run all tests
+# Run all testss
 cargo test --workspace
 
 # Run integration tests
