@@ -47,18 +47,18 @@
 		"postinstall": "husky"
 	},
 	"devDependencies": {
-		"@napi-rs/cli": "^3.0.0-alpha.64",
-		"@oxc-node/core": "^0.0.23",
+		"@napi-rs/cli": "^3.1.5",
+		"@oxc-node/core": "^0.0.32",
 		"@taplo/cli": "^0.7.0",
-		"@types/node": "^20.4.0",
+		"@types/node": "^24.3.0",
 		"ava": "^6.2.0",
 		"chalk": "^5.4.1",
 		"husky": "^9.1.7",
-		"lint-staged": "^15.5.1",
-		"npm-run-all2": "^7.0.2",
-		"oxlint": "^0.16.5",
+		"lint-staged": "^16.1.5",
+		"npm-run-all2": "^8.0.4",
+		"oxlint": "^1.12.0",
 		"prettier": "^3.5.3",
-		"tinybench": "^4.0.1",
+		"tinybench": "^5.0.0",
 		"typescript": "^5.8.3"
 	},
 	"ava": {
@@ -75,5 +75,5 @@
 			"@oxc-node/core/register"
 		]
 	},
-	"packageManager": "yarn@4.9.0"
+	"packageManager": "yarn@4.9.2"
 }

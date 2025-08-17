@@ -74,23 +74,45 @@ function requireNative() {
 	} else if (process.platform === 'android') {
 		if (process.arch === 'arm64') {
 			try {
-				return require('./index.android-arm64.node')
+				return require('./berry.android-arm64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-android-arm64')
+				const binding = require('@berry/core-android-arm64')
+				const bindingPackageVersion = require('@berry/core-android-arm64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm') {
 			try {
-				return require('./index.android-arm-eabi.node')
+				return require('./berry.android-arm-eabi.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-android-arm-eabi')
+				const binding = require('@berry/core-android-arm-eabi')
+				const bindingPackageVersion = require('@berry/core-android-arm-eabi/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -100,34 +122,67 @@ function requireNative() {
 	} else if (process.platform === 'win32') {
 		if (process.arch === 'x64') {
 			try {
-				return require('./index.win32-x64-msvc.node')
+				return require('./berry.win32-x64-msvc.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-win32-x64-msvc')
+				const binding = require('@berry/core-win32-x64-msvc')
+				const bindingPackageVersion = require('@berry/core-win32-x64-msvc/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'ia32') {
 			try {
-				return require('./index.win32-ia32-msvc.node')
+				return require('./berry.win32-ia32-msvc.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-win32-ia32-msvc')
+				const binding = require('@berry/core-win32-ia32-msvc')
+				const bindingPackageVersion = require('@berry/core-win32-ia32-msvc/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm64') {
 			try {
-				return require('./index.win32-arm64-msvc.node')
+				return require('./berry.win32-arm64-msvc.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-win32-arm64-msvc')
+				const binding = require('@berry/core-win32-arm64-msvc')
+				const bindingPackageVersion = require('@berry/core-win32-arm64-msvc/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -136,35 +191,67 @@ function requireNative() {
 		}
 	} else if (process.platform === 'darwin') {
 		try {
-			return require('./index.darwin-universal.node')
+			return require('./berry.darwin-universal.node')
 		} catch (e) {
 			loadErrors.push(e)
 		}
 		try {
-			return require('@berry/repo-darwin-universal')
+			const binding = require('@berry/core-darwin-universal')
+			const bindingPackageVersion = require('@berry/core-darwin-universal/package.json').version
+			if (
+				bindingPackageVersion !== '1.0.0' &&
+				process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+				process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+			) {
+				throw new Error(
+					`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+				)
+			}
+			return binding
 		} catch (e) {
 			loadErrors.push(e)
 		}
-
 		if (process.arch === 'x64') {
 			try {
-				return require('./index.darwin-x64.node')
+				return require('./berry.darwin-x64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-darwin-x64')
+				const binding = require('@berry/core-darwin-x64')
+				const bindingPackageVersion = require('@berry/core-darwin-x64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm64') {
 			try {
-				return require('./index.darwin-arm64.node')
+				return require('./berry.darwin-arm64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-darwin-arm64')
+				const binding = require('@berry/core-darwin-arm64')
+				const bindingPackageVersion = require('@berry/core-darwin-arm64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -174,23 +261,45 @@ function requireNative() {
 	} else if (process.platform === 'freebsd') {
 		if (process.arch === 'x64') {
 			try {
-				return require('./index.freebsd-x64.node')
+				return require('./berry.freebsd-x64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-freebsd-x64')
+				const binding = require('@berry/core-freebsd-x64')
+				const bindingPackageVersion = require('@berry/core-freebsd-x64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 'arm64') {
 			try {
-				return require('./index.freebsd-arm64.node')
+				return require('./berry.freebsd-arm64.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-freebsd-arm64')
+				const binding = require('@berry/core-freebsd-arm64')
+				const bindingPackageVersion = require('@berry/core-freebsd-arm64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
@@ -201,23 +310,45 @@ function requireNative() {
 		if (process.arch === 'x64') {
 			if (isMusl()) {
 				try {
-					return require('./index.linux-x64-musl.node')
+					return require('./berry.linux-x64-musl.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-x64-musl')
+					const binding = require('@berry/core-linux-x64-musl')
+					const bindingPackageVersion = require('@berry/core-linux-x64-musl/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./index.linux-x64-gnu.node')
+					return require('./berry.linux-x64-gnu.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-x64-gnu')
+					const binding = require('@berry/core-linux-x64-gnu')
+					const bindingPackageVersion = require('@berry/core-linux-x64-gnu/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
@@ -225,23 +356,45 @@ function requireNative() {
 		} else if (process.arch === 'arm64') {
 			if (isMusl()) {
 				try {
-					return require('./index.linux-arm64-musl.node')
+					return require('./berry.linux-arm64-musl.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-arm64-musl')
+					const binding = require('@berry/core-linux-arm64-musl')
+					const bindingPackageVersion = require('@berry/core-linux-arm64-musl/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./index.linux-arm64-gnu.node')
+					return require('./berry.linux-arm64-gnu.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-arm64-gnu')
+					const binding = require('@berry/core-linux-arm64-gnu')
+					const bindingPackageVersion = require('@berry/core-linux-arm64-gnu/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
@@ -249,23 +402,45 @@ function requireNative() {
 		} else if (process.arch === 'arm') {
 			if (isMusl()) {
 				try {
-					return require('./index.linux-arm-musleabihf.node')
+					return require('./berry.linux-arm-musleabihf.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-arm-musleabihf')
+					const binding = require('@berry/core-linux-arm-musleabihf')
+					const bindingPackageVersion = require('@berry/core-linux-arm-musleabihf/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./index.linux-arm-gnueabihf.node')
+					return require('./berry.linux-arm-gnueabihf.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-arm-gnueabihf')
+					const binding = require('@berry/core-linux-arm-gnueabihf')
+					const bindingPackageVersion = require('@berry/core-linux-arm-gnueabihf/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
@@ -273,51 +448,165 @@ function requireNative() {
 		} else if (process.arch === 'riscv64') {
 			if (isMusl()) {
 				try {
-					return require('./index.linux-riscv64-musl.node')
+					return require('./berry.linux-riscv64-musl.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-riscv64-musl')
+					const binding = require('@berry/core-linux-riscv64-musl')
+					const bindingPackageVersion = require('@berry/core-linux-riscv64-musl/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			} else {
 				try {
-					return require('./index.linux-riscv64-gnu.node')
+					return require('./berry.linux-riscv64-gnu.node')
 				} catch (e) {
 					loadErrors.push(e)
 				}
 				try {
-					return require('@berry/repo-linux-riscv64-gnu')
+					const binding = require('@berry/core-linux-riscv64-gnu')
+					const bindingPackageVersion = require('@berry/core-linux-riscv64-gnu/package.json').version
+					if (
+						bindingPackageVersion !== '1.0.0' &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+						process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+					) {
+						throw new Error(
+							`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+						)
+					}
+					return binding
 				} catch (e) {
 					loadErrors.push(e)
 				}
 			}
 		} else if (process.arch === 'ppc64') {
 			try {
-				return require('./index.linux-ppc64-gnu.node')
+				return require('./berry.linux-ppc64-gnu.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-linux-ppc64-gnu')
+				const binding = require('@berry/core-linux-ppc64-gnu')
+				const bindingPackageVersion = require('@berry/core-linux-ppc64-gnu/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else if (process.arch === 's390x') {
 			try {
-				return require('./index.linux-s390x-gnu.node')
+				return require('./berry.linux-s390x-gnu.node')
 			} catch (e) {
 				loadErrors.push(e)
 			}
 			try {
-				return require('@berry/repo-linux-s390x-gnu')
+				const binding = require('@berry/core-linux-s390x-gnu')
+				const bindingPackageVersion = require('@berry/core-linux-s390x-gnu/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
 			} catch (e) {
 				loadErrors.push(e)
 			}
 		} else {
 			loadErrors.push(new Error(`Unsupported architecture on Linux: ${process.arch}`))
+		}
+	} else if (process.platform === 'openharmony') {
+		if (process.arch === 'arm64') {
+			try {
+				return require('./berry.openharmony-arm64.node')
+			} catch (e) {
+				loadErrors.push(e)
+			}
+			try {
+				const binding = require('@berry/core-openharmony-arm64')
+				const bindingPackageVersion = require('@berry/core-openharmony-arm64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
+			} catch (e) {
+				loadErrors.push(e)
+			}
+		} else if (process.arch === 'x64') {
+			try {
+				return require('./berry.openharmony-x64.node')
+			} catch (e) {
+				loadErrors.push(e)
+			}
+			try {
+				const binding = require('@berry/core-openharmony-x64')
+				const bindingPackageVersion = require('@berry/core-openharmony-x64/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
+			} catch (e) {
+				loadErrors.push(e)
+			}
+		} else if (process.arch === 'arm') {
+			try {
+				return require('./berry.openharmony-arm.node')
+			} catch (e) {
+				loadErrors.push(e)
+			}
+			try {
+				const binding = require('@berry/core-openharmony-arm')
+				const bindingPackageVersion = require('@berry/core-openharmony-arm/package.json').version
+				if (
+					bindingPackageVersion !== '1.0.0' &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK &&
+					process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0'
+				) {
+					throw new Error(
+						`Native binding package version mismatch, expected 1.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`,
+					)
+				}
+				return binding
+			} catch (e) {
+				loadErrors.push(e)
+			}
+		} else {
+			loadErrors.push(new Error(`Unsupported architecture on OpenHarmony: ${process.arch}`))
 		}
 	} else {
 		loadErrors.push(new Error(`Unsupported OS: ${process.platform}, architecture: ${process.arch}`))
@@ -328,7 +617,7 @@ nativeBinding = requireNative()
 
 if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
 	try {
-		nativeBinding = require('./index.wasi.cjs')
+		nativeBinding = require('./berry.wasi.cjs')
 	} catch (err) {
 		if (process.env.NAPI_RS_FORCE_WASI) {
 			loadErrors.push(err)
@@ -336,7 +625,7 @@ if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
 	}
 	if (!nativeBinding) {
 		try {
-			nativeBinding = require('@berry/repo-wasm32-wasi')
+			nativeBinding = require('@berry/core-wasm32-wasi')
 		} catch (err) {
 			if (process.env.NAPI_RS_FORCE_WASI) {
 				loadErrors.push(err)
@@ -347,11 +636,12 @@ if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
 
 if (!nativeBinding) {
 	if (loadErrors.length > 0) {
-		// TODO Link to documentation with potential fixes
-		//  - The package owner could build/publish bindings for this arch
-		//  - The user may need to bundle the correct files
-		//  - The user may need to re-install node_modules to get new packages
-		throw new Error('Failed to load native binding', { cause: loadErrors })
+		throw new Error(
+			`Cannot find native binding. ` +
+				`npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). ` +
+				'Please try `npm i` again after removing both package-lock.json and node_modules directory.',
+			{ cause: loadErrors },
+		)
 	}
 	throw new Error(`Failed to load native binding`)
 }
