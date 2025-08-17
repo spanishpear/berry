@@ -16,4 +16,4 @@ napi        = { workspace = true }
 napi-derive = { workspace = true }
 
 [build-dependencies]
-napi-build = "2.1.6"
+napi-build = "2.2.3"

@@ -8,10 +8,7 @@ repository.workspace = true
 version              = "0.1.0"
 
 [dependencies]
-nom = "8.0.0"
-
-[dev-dependencies]
-berry-test = { path = "../berry-test" }
+nom = { workspace = true }
 
 [lints]
 workspace = true

@@ -118,8 +118,7 @@ impl Range {
       Some("exec") => Protocol::Exec,
       Some("link") => Protocol::Link,
       Some(p) if p.starts_with("git") => Protocol::Git,
-      Some(_) => Protocol::Unknown,
-      None => Protocol::Unknown,
+      Some(_) | None => Protocol::Unknown,
     }
   }
 
@@ -177,11 +176,9 @@ impl Range {
       Protocol::Git => {
         // Return full URL including scheme (e.g., git+ssh://...), not just selector
         let raw = self.raw();
-        if let Some(pos) = raw.find('#') {
+        raw.find('#').map_or(Some((raw, None)), |pos| {
           Some((&raw[..pos], Some(&raw[pos + 1..])))
-        } else {
-          Some((raw, None))
-        }
+        })
       }
       _ => None,
     }
@@ -192,11 +189,9 @@ impl Range {
     match self.protocol() {
       Protocol::Patch => {
         let sel = self.selector();
-        if let Some(pos) = sel.find('#') {
+        sel.find('#').map_or(Some((sel, None)), |pos| {
           Some((&sel[..pos], Some(&sel[pos + 1..])))
-        } else {
-          Some((sel, None))
-        }
+        })
       }
       _ => None,
     }

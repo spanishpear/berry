@@ -9,4 +9,4 @@ version.workspace    = true
 [dependencies]
 berry-core = { path = "../berry-core" }
 berry-test = { path = "../berry-test" }
-clap       = { version = "4", features = ["derive"] }
+clap       = { workspace = true }

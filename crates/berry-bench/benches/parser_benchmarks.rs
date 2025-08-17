@@ -299,7 +299,7 @@ fn benchmark_all_fixtures(c: &mut Criterion) {
 
   for fixture_name in fixtures {
     let fixture = load_fixture(&fixture_name);
-    let label = format!("{}", fixture_name.replace('.', "_").replace('-', "_"));
+    let label = fixture_name.replace(['.', '-'], "_").to_string();
     group.bench_function(label, |b| {
       b.iter(|| {
         let result = parse_lockfile(black_box(&fixture));

@@ -7,12 +7,12 @@ repository.workspace = true
 version.workspace    = true
 
 [dependencies]
-berry-core   = { path = "../berry-core" }
-berry-test   = { path = "../berry-test" }
-clap         = { version = "4.0", features = ["derive"] }
-memory-stats = "1.1"
-serde        = { version = "1.0", features = ["derive"] }
-serde_json   = "1.0"
+berry-core   = { workspace = true }
+berry-test   = { workspace = true }
+clap         = { workspace = true }
+memory-stats = { workspace = true }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
 
 [lints]
 workspace = true

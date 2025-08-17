@@ -1,25 +1,17 @@
 # Berry - High-Performance Yarn Lockfile Parser
 
-A high-performance, zero-allocation parser for Yarn v3/v4 lockfiles, built with Rust and nom. This parser focuses on idiomatic Rust, modularity, and performance for future use in WASM or with napi-rs.
+A high-performance parser for Yarn v3/v4 lockfiles, built with Rust and nom. This parser focuses on performance, with minimal allocation and future use in WASM or with napi-rs.
 
-## 🚀 Features
-
-- **Zero-Allocation Parsing**: Minimal memory allocations during parsing phase
-- **High Performance**: Sub-millisecond parsing for most lockfiles
-- **Comprehensive Support**: Handles all major Yarn v3/v4 lockfile features
-- **Memory Efficient**: Optimized for minimal heap usage
-- **Production Ready**: Comprehensive test coverage and benchmarking
-
-## 📊 Performance
+## Performance
 
 The parser is designed for high performance with minimal memory usage:
 
-- **Small files** (~1KB): ~6-7 microseconds
-- **Medium files** (~2KB): ~2-3 microseconds
-- **Large files** (~40KB): ~5 microseconds
-- **Memory usage**: Typically 0-20KB heap usage depending on fixture complexity
+- Small files (~1KB): ~6-7 microseconds
+- Medium files (~2KB): ~2-3 microseconds
+- Large files (~40KB): ~5 microseconds
+- Memory usage: Typically 0-20KB heap usage depending on fixture complexity
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 crates/
@@ -27,12 +19,12 @@ crates/
 ├── berry-test/          # Integration tests
 ├── berry-bench/         # Criterion microbenchmarks
 ├── berry-bench-bin/     # CLI benchmarking tool
-└── node-bindings/       # Node.js bindings (planned)
+└── node-bindings/       # Node.js bindings (WIP)
 ```
 
-## 🧪 Benchmarking
+## Benchmarking
 
-The project includes comprehensive benchmarking infrastructure for performance monitoring and regression detection.
+The project includes basic benchmarking infrastructure for performance monitoring and regression detection. Claude wrote that part, apologies.
 
 ### Quick Performance Testing
 
@@ -59,12 +51,12 @@ cargo bench --package berry-bench --bench parser_benchmarks -- --quick
 
 ### Benchmark Categories
 
-- **Fixture Parsing**: Different file sizes and complexities
-- **Memory Usage**: Heap usage tracking and analysis
-- **Zero-Allocation Validation**: Memory allocation verification
-- **Input Characteristics**: Various lockfile formats and features
+- Fixture Parsing: Different file sizes and complexities
+- Memory Usage: Heap usage tracking and analysis
+- Zero-Allocation Validation: Memory allocation verification
+- Input Characteristics: Various lockfile formats and features
 
-## 🛠️ Development
+## Development
 
 ### Prerequisites
 
@@ -104,7 +96,7 @@ cargo clippy --workspace
 cargo fmt --workspace
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ### Core Parser (`crates/berry-core/`)
 
@@ -127,9 +119,9 @@ cargo fmt --workspace
 - Memory usage tracking and heap analysis
 - Performance regression detection
 
-## 🎯 Current Status
+## Current Status
 
-✅ **Production Ready**
+- Production Ready
 
 - All tests passing (23/23)
 - Zero clippy warnings
@@ -138,31 +130,31 @@ cargo fmt --workspace
 - Modern nom API usage
 - Comprehensive test coverage
 
-🔄 **In Development**
+- In Development
 
 - Advanced lockfile features (multi-descriptors, meta fields)
 - WASM compilation support
 - Node.js bindings with napi-rs
 - CI/CD benchmarking pipeline
 
-## 📈 Performance Monitoring
+## Performance Monitoring
 
 The benchmarking infrastructure automatically detects:
 
-- **Performance regressions** (>50% slower than baseline)
-- **Statistical significance** in benchmark results
-- **Memory usage patterns** and allocation tracking
-- **Zero-allocation violations** during parsing
+- Performance regressions (>50% slower than baseline)
+- Statistical significance in benchmark results
+- Memory usage patterns and allocation tracking
+- Zero-allocation violations during parsing
 
-## 🤝 Contributing
+## Contributing
 
 See [CONTRIBUTING.md](dev-docs/CONTRIBUTING.md) for development guidelines and benchmarking information.
 
-## 📄 License
+## License
 
 MIT OR Apache-2.0
 
-## 🔗 Links
+## Links
 
 - [Task List](.cursor/tasks/BERRY_LOCKFILE_PARSER.md) - Detailed development progress
 - [Benchmarking Plan](.cursor/tasks/BENCHMARKING_PLAN.md) - Comprehensive benchmarking strategy

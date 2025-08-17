@@ -192,9 +192,9 @@ mod tests_parse_r_c {
 
   #[test]
   fn test_parse_top_level_constraints_block() {
-    let input = r#"constraints:
+    let input = r"constraints:
   react@^18: npm:^18.2.0
-"#;
+";
     let (rest, constraints) = parse_constraints(input).expect("parse constraints");
     assert!(rest.is_empty());
     assert_eq!(constraints.len(), 1);

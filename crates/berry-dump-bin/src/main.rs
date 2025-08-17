@@ -40,7 +40,7 @@ fn main() {
 
   match parse_lockfile(&contents) {
     Ok((remaining, lockfile)) => {
-      println!("lockfile: {:#?}", lockfile);
+      println!("lockfile: {lockfile:#?}");
       if !remaining.trim().is_empty() {
         eprintln!("WARNING: {} bytes remaining unparsed", remaining.len());
       }

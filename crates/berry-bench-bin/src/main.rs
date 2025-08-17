@@ -112,8 +112,10 @@ fn benchmark_fixture(
   let result = parse_lockfile(&fixture);
   let after = memory_stats().unwrap();
 
-  let heap_usage = after.physical_mem - before.physical_mem;
-  let virtual_usage = after.virtual_mem - before.virtual_mem;
+  let heap_usage = isize::try_from(after.physical_mem).expect("physical mem too large")
+    - isize::try_from(before.physical_mem).expect("physical mem too large");
+  let virtual_usage = isize::try_from(after.virtual_mem).expect("virtual mem too large")
+    - isize::try_from(before.virtual_mem).expect("virtual mem too large");
 
   assert!(result.is_ok(), "Should parse {fixture_name} successfully");
 
@@ -158,8 +160,8 @@ fn benchmark_fixture(
     max_time_ms: max,
     std_dev_ms: std_dev,
     runs,
-    heap_usage_bytes: Some(heap_usage),
-    virtual_usage_bytes: Some(virtual_usage),
+    heap_usage_bytes: Some(heap_usage.unsigned_abs()),
+    virtual_usage_bytes: Some(virtual_usage.unsigned_abs()),
     time_per_kib_ms,
     mb_per_s,
   }
@@ -237,7 +239,10 @@ fn discover_all_fixture_names() -> Vec<String> {
       let entry = entry.ok()?;
       let path = entry.path();
       if path.extension()?.to_str()? == "lock" {
-        path.file_name()?.to_str().map(|s| s.to_string())
+        path
+          .file_name()?
+          .to_str()
+          .map(std::string::ToString::to_string)
       } else {
         None
       }
@@ -347,15 +352,15 @@ fn main() {
         std::process::exit(1);
       }
     } else {
-      eprintln!("Could not load baseline from {}", baseline_path);
+      eprintln!("Could not load baseline from {baseline_path}");
     }
   }
 
   if let Some(save_path) = &args.save_baseline {
     if let Err(err) = save_baseline(save_path, &results) {
-      eprintln!("Failed to save baseline to {}: {}", save_path, err);
+      eprintln!("Failed to save baseline to {save_path}: {err}");
     } else if args.verbose {
-      println!("Saved baseline to {}", save_path);
+      println!("Saved baseline to {save_path}");
     }
   }
 }
