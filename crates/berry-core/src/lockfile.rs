@@ -25,7 +25,9 @@ pub struct Lockfile {
 /// A single lockfile entry is a mapping of one or more descriptors to a single package
 #[derive(Debug)]
 pub struct Entry {
+  /// The descriptors of the entry
   pub descriptors: Vec<Descriptor>,
+  /// The package of the entry
   pub package: Package,
 }
 
@@ -40,13 +42,32 @@ impl Entry {
 
 /// The start of the metadata block
 /// Typically at the start of the file
+///
+/// # Examples
+///
+/// ```
+/// __metadata:
+///   version: 8
+///   cacheKey: 9
+/// ```
+///
+/// will often be represented as:
+///
+/// ```
+/// Metadata {
+///   version: "8",
+///   cache_key: "9",
+/// }
 #[derive(Debug)]
 pub struct Metadata {
+  /// The version of the lockfile
   pub version: String,
+  /// The cache key of the lockfile
   pub cache_key: String,
 }
 
 impl Metadata {
+  /// Create a new Metadata from a version and a cache key
   pub fn new(version: String, cache_key: String) -> Self {
     Self { version, cache_key }
   }
@@ -70,10 +91,14 @@ pub(crate) fn parse_metadata_line(input: &str) -> IResult<&str, (&str, &str)> {
 }
 
 /// Parses the __metadata block of a yarn lockfile
-/// e.g.
+///
+/// # Examples
+///
+/// ```
 /// __metadata:
 ///   version: 8
 ///   cacheKey: 9
+/// ```
 pub(crate) fn parse_metadata(input: &str) -> IResult<&str, Metadata> {
   let (rest, _) = terminated(tag("__metadata:"), newline).parse(input)?;
   let (rest, version_line) = parse_metadata_line(rest)?;
@@ -90,11 +115,11 @@ pub(crate) fn parse_metadata(input: &str) -> IResult<&str, Metadata> {
   ))
 }
 
+// NOTE: A faster approach **could** be to just consume three lines, and not even use nom
 /// Parse a yarn lockfile header
 /// It matches explicitly the yarn lockfile header comments
 /// and the newline that follows
 ///
-/// NOTE: A faster approach **could** be to just consume three lines, and not even use nom
 pub(crate) fn parse_yarn_header(input: &str) -> IResult<&str, (&str, &str)> {
   terminated(
     pair(

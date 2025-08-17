@@ -17,14 +17,17 @@ pub struct Locator {
 }
 
 impl Locator {
+  /// Create a new Locator from an Ident and a reference
   pub fn new(ident: Ident, reference: String) -> Self {
     Self { ident, reference }
   }
 
+  /// Returns the Ident of the Locator (e.g. `@scope/package`)
   pub fn ident(&self) -> &Ident {
     &self.ident
   }
 
+  /// Returns the reference of the Locator (e.g. `1.2.3`)
   pub fn reference(&self) -> &str {
     &self.reference
   }

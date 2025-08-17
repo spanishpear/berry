@@ -66,7 +66,6 @@ impl AsRef<str> for LanguageName {
 
 // TODO: should the strings here be owned, or just &str for 'a
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct Package {
   /// Version of the package, if available
   pub version: Option<String>,

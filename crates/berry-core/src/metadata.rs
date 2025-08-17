@@ -1,7 +1,6 @@
 // https://github.com/yarnpkg/berry/blob/master/packages/yarnpkg-core/sources/Manifest.ts#L25
 // note: this smells like option, but realistically it is an extra property
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct PeerDependencyMeta {
   pub optional: bool,
 }
@@ -10,7 +9,6 @@ pub struct PeerDependencyMeta {
 // note: this smells like misuse of option, but realistically it is an extra property that
 // may exist, and it may be true/false
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct DependencyMeta {
   pub built: Option<bool>,
   pub optional: Option<bool>,

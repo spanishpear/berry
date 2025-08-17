@@ -400,11 +400,17 @@ fn parse_property_line(input: &str) -> IResult<&str, PropertyValue<'_>> {
 /// Enum to represent different types of property values
 #[derive(Debug)]
 enum PropertyValue<'a> {
+  /// A simple key-value property
   Simple(&'a str, &'a str),
+  /// A dependencies block
   Dependencies(Vec<(&'a str, &'a str)>), // Use Vec instead of HashMap to avoid allocations
+  /// A peer dependencies block
   PeerDependencies(Vec<(&'a str, &'a str)>), // Use Vec instead of HashMap to avoid allocations
-  Bin(Vec<(&'a str, &'a str)>),          // Binary executables: name -> path
+  /// A bin block
+  Bin(Vec<(&'a str, &'a str)>), // Binary executables: name -> path
+  /// A dependencies meta block
   DependenciesMeta(Vec<(&'a str, DependencyMeta)>), // Dependency metadata
+  /// A peer dependencies meta block
   PeerDependenciesMeta(Vec<(&'a str, PeerDependencyMeta)>), // Peer dependency metadata
 }
 
@@ -830,24 +836,6 @@ fn parse_meta_object(input: &str) -> IResult<&str, DependencyMeta> {
   ))
 }
 
-/// Parse a boolean property like "built: true" or "optional: false" (multiline format)
-#[allow(dead_code)]
-fn parse_bool_property(prop_name: &str) -> impl Fn(&str) -> IResult<&str, bool> {
-  move |input| {
-    let (rest, (_, _, _, value, _)) = (
-      tag(prop_name),
-      char(':'),
-      space1,
-      alt((tag("true"), tag("false"))),
-      newline,
-    )
-      .parse(input)?;
-
-    let bool_value = value == "true";
-    Ok((rest, bool_value))
-  }
-}
-
 /// Parse a dependency name into an Ident
 /// This handles both scoped (@scope/name) and non-scoped (name) packages
 fn parse_dependency_name_to_ident(dep_name: &str) -> Ident {
@@ -869,23 +857,6 @@ fn parse_dependency_name_to_ident(dep_name: &str) -> Ident {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use std::collections::HashMap;
-
-  // Helper functions for creating mock data (if needed in the future)
-  #[allow(dead_code)]
-  fn create_mock_dependencies() -> HashMap<String, String> {
-    let mut deps = HashMap::new();
-    deps.insert("ms".to_string(), "0.6.2".to_string());
-    deps.insert("lodash".to_string(), "^4.17.0".to_string());
-    deps
-  }
-
-  #[allow(dead_code)]
-  fn create_mock_peer_dependencies() -> HashMap<String, String> {
-    let mut peer_deps = HashMap::new();
-    peer_deps.insert("lodash".to_string(), "^3.0.0 || ^4.0.0".to_string());
-    peer_deps
-  }
 
   #[test]
   fn test_parse_dependency_line_simple() {

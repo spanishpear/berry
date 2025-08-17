@@ -45,10 +45,12 @@ impl Ident {
     }
   }
 
+  /// Returns the scope of the package, e.g. for `@scope/package`, this is `@scope`
   pub fn scope(&self) -> Option<&str> {
     self.scope.as_ref().map(IdentScope::as_str)
   }
 
+  /// Returns the name of the package, e.g. for `@scope/package`, this is `package`
   pub fn name(&self) -> &str {
     self.name.as_str()
   }
@@ -211,6 +213,7 @@ pub struct Descriptor {
 }
 
 impl Descriptor {
+  /// Create a new Descriptor from an Ident and a range string
   pub fn new(ident: Ident, range_raw: String) -> Self {
     Self {
       ident,
@@ -218,15 +221,17 @@ impl Descriptor {
     }
   }
 
+  /// Returns the Ident of the Descriptor
   pub fn ident(&self) -> &Ident {
     &self.ident
   }
 
+  /// Returns the raw range string of the Descriptor
   pub fn range(&self) -> &str {
     self.range.raw()
   }
 
-  /// Access the structured range
+  /// Returns the structured range of the Descriptor
   pub fn range_struct(&self) -> &Range {
     &self.range
   }
