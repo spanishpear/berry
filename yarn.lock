@@ -5,6 +5,26 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"@berry/core@workspace:crates/node-bindings":
+  version: 0.0.0-use.local
+  resolution: "@berry/core@workspace:crates/node-bindings"
+  dependencies:
+    "@napi-rs/cli": "npm:^3.1.5"
+    "@oxc-node/core": "npm:^0.0.32"
+    "@taplo/cli": "npm:^0.7.0"
+    "@types/node": "npm:^24.3.0"
+    ava: "npm:^6.2.0"
+    chalk: "npm:^5.4.1"
+    husky: "npm:^9.1.7"
+    lint-staged: "npm:^16.1.5"
+    npm-run-all2: "npm:^8.0.4"
+    oxlint: "npm:^1.12.0"
+    prettier: "npm:^3.5.3"
+    tinybench: "npm:^5.0.0"
+    typescript: "npm:^5.8.3"
+  languageName: unknown
+  linkType: soft
+
 "@berry/repo@workspace:.":
   version: 0.0.0-use.local
   resolution: "@berry/repo@workspace:."
