@@ -173,10 +173,9 @@ fn parse_single_descriptor(input: &str) -> IResult<&str, (&str, &str, &str)> {
     parse_patch_range,
   )
     .parse(input)
+    && protocol == "patch"
   {
-    if protocol == "patch" {
-      return Ok((remaining, (name_part, protocol, patch_range)));
-    }
+    return Ok((remaining, (name_part, protocol, patch_range)));
   }
 
   // Try protocol:range format (e.g., npm:1.0.0)
