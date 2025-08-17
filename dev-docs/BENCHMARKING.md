@@ -2,31 +2,6 @@
 
 Technical documentation for Berry's benchmarking infrastructure.
 
-## Architecture
-
-### Criterion Microbenchmarks (`crates/berry-bench/`)
-
-**Purpose**: Statistical benchmarking with confidence intervals and regression detection
-
-**Features**:
-
-- Statistical significance testing
-- HTML reports with charts
-- Automatic regression detection
-- Memory usage tracking
-- Low variance measurements
-
-**Use cases**:
-
-- Detailed performance analysis
-- Regression detection
-- Optimization validation
-- Long-term performance tracking
-
-### CLI Benchmarking Tool (`crates/berry-bench-bin/`)
-
-**Purpose**: Quick performance testing for development workflow
-
 ## Setup
 
 ### Prerequisites
@@ -130,7 +105,7 @@ Fixture                   Size (bytes) Mean (ms)    Min (ms)     Max (ms)     He
 minimal-berry.lock        1152         0.132        0.131        0.133        20480
 
 Performance Analysis:
-✅ minimal-berry.lock performance looks normal (1.0x vs fastest)
+  minimal-berry.lock performance looks normal (1.0x vs fastest)
 ```
 
 **Key metrics**:
@@ -144,7 +119,7 @@ Performance Analysis:
 
 ```
 fixture_parsing/minimal_berry
-                        time:   [6.1249 µs 6.2624 µs 6.2968 µs]
+                        time:   [6.1249  b5s 6.2624  b5s 6.2968  b5s]
                         change: [-3.4204% -0.9236% +1.4829%] (p = 0.85 > 0.05)
                         No change in performance detected.
 
@@ -171,8 +146,8 @@ cargo run --bin berry-bench-bin -- --all -r 5
 
 ```
 Performance Analysis:
-✅ workspaces.yarn.lock performance looks normal (1.0x vs fastest)
-⚠️  minimal-berry.lock is 2.8x slower than workspaces.yarn.lock (potential regression)
+  workspaces.yarn.lock performance looks normal (1.0x vs fastest)
+  minimal-berry.lock is 2.8x slower than workspaces.yarn.lock (potential regression)
 ```
 
 **Thresholds**:
@@ -260,34 +235,14 @@ yarn4-patch.lock: 0 bytes heap usage
    cargo bench --package berry-bench --bench parser_benchmarks
    ```
 
-### Optimization Strategies
-
-#### Zero-Allocation Principles
+### Optimization
 
 - Use `&str` instead of `String` during parsing
 - Use `fold_many0` instead of `many0`
 - Defer allocation until final data structures
 - Parse everything in one pass
 
-#### Memory Optimization
-
-- Track heap usage patterns
-- Identify allocation sources
-- Minimize memory footprint
-- Avoid repeated allocations
-
-#### Performance Optimization
-
-- Profile to identify bottlenecks
-- Benchmark before and after changes
-- Consider performance vs. memory vs. complexity trade-offs
-- Document optimization decisions
-
-## Advanced Usage
-
-### Custom Benchmarking
-
-#### Adding New Fixtures
+### Adding New Fixtures
 
 1. Add fixture to `fixtures/` directory
 2. Update benchmark lists in both CLI and Criterion benchmarks
@@ -307,80 +262,11 @@ fn benchmark_custom_category(c: &mut Criterion) {
 }
 ```
 
-### CI/CD Integration
-
-#### GitHub Actions Example
-
-```yaml
-name: Performance Benchmarks
-on: [push, pull_request]
-
-jobs:
-  benchmark:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - run: cargo bench --workspace
-      - run: cargo run --bin berry-bench-bin -- --all --format json > benchmark-results.json
-      - uses: actions/upload-artifact@v3
-        with:
-          name: benchmark-results
-          path: benchmark-results.json
-```
-
-#### Regression Detection
-
 ```bash
 # Compare against baseline
 cargo run --bin berry-bench-bin -- --all --format json > current-results.json
 diff baseline-results.json current-results.json
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Parsing Failures
-
-**Symptoms**: Benchmark fails with parsing error
-**Solutions**:
-
-- Check fixture format and validity
-- Verify parser handles all edge cases
-- Add fixture to test suite first
-
-#### Performance Regressions
-
-**Symptoms**: Benchmarks show significant slowdown
-**Solutions**:
-
-- Compare with previous baseline
-- Check for recent changes
-- Profile to identify bottlenecks
-- Consider reverting problematic changes
-
-#### Memory Issues
-
-**Symptoms**: Unexpected heap usage patterns
-**Solutions**:
-
-- Check for memory leaks
-- Verify zero-allocation claims
-- Profile memory usage patterns
-- Optimize data structures
-
-#### Inconsistent Results
-
-**Symptoms**: High variance in benchmark results
-**Solutions**:
-
-- Increase number of runs
-- Check for system load
-- Use Criterion for statistical analysis
-- Ensure consistent environment
 
 ### Debug Tools
 
@@ -399,17 +285,7 @@ cargo run --bin berry-bench-bin -- -f large-fixture.lock -v
 cargo bench --package berry-bench --bench parser_benchmarks -- --verbose
 ```
 
-## Contributing to Benchmarks
-
-When contributing to the benchmarking infrastructure:
-
-1. Follow existing patterns for consistent naming and structure
-2. Add comprehensive tests to ensure benchmarks are reliable
-3. Document changes and explain new benchmarks
-4. Validate results to ensure meaningful insights
-5. Consider impact and balance detail with performance
-
-## Related Documentation
+## Related
 
 - [Criterion Documentation](https://docs.rs/criterion/) - Statistical benchmarking framework
 - [Nom Documentation](https://docs.rs/nom/) - Parser combinator library

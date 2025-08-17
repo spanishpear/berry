@@ -2,7 +2,7 @@
 
 Welcome to the Berry project! This document provides comprehensive guidelines for contributing to the high-performance Yarn lockfile parser.
 
-## 🚀 Project Overview
+## Project Overview
 
 Berry is a high-performance, zero-allocation parser for Yarn v3/v4 lockfiles, built with Rust and nom. The project focuses on:
 
@@ -11,7 +11,7 @@ Berry is a high-performance, zero-allocation parser for Yarn v3/v4 lockfiles, bu
 - **Modularity**: Clean architecture for WASM and Node.js integration
 - **Reliability**: Comprehensive testing and benchmarking
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 crates/
@@ -22,7 +22,7 @@ crates/
 └── node-bindings/       # Node.js bindings (planned)
 ```
 
-## 🛠️ Development Setup
+## Development Setup
 
 ### Prerequisites
 
@@ -47,7 +47,7 @@ cargo test --workspace
 cargo clippy --workspace
 ```
 
-## 🧪 Benchmarking Infrastructure
+## Benchmarking Infrastructure
 
 Berry includes a comprehensive benchmarking system to ensure performance and detect regressions.
 
@@ -136,15 +136,15 @@ workspaces.yarn.lock      2005         0.048        0.046        0.050        81
 auxiliary-packages.yarn.lock 40540        0.082        0.080        0.085        20480
 
 Performance Analysis:
-✅ workspaces.yarn.lock performance looks normal (1.0x vs fastest)
-⚠️  minimal-berry.lock is 2.8x slower than workspaces.yarn.lock (potential regression)
+  workspaces.yarn.lock performance looks normal (1.0x vs fastest)
+  minimal-berry.lock is 2.8x slower than workspaces.yarn.lock (potential regression)
 ```
 
 #### Criterion Output
 
 ```
 fixture_parsing/minimal_berry
-                        time:   [6.1249 µs 6.2624 µs 6.2968 µs]
+                        time:   [6.1249  b5s 6.2624  b5s 6.2968  b5s]
                         change: [-3.4204% -0.9236% +1.4829%] (p = 0.85 > 0.05)
                         No change in performance detected.
 
@@ -169,7 +169,7 @@ The system automatically detects:
 3. **Memory usage increases**: Unexpected heap usage growth
 4. **Zero-allocation violations**: Unexpected allocations during parsing
 
-## 🧪 Testing
+## Testing
 
 ### Running Tests
 
@@ -205,7 +205,7 @@ cargo test --workspace -- --nocapture
 - Memory usage validation
 - Statistical significance testing
 
-## 📝 Code Quality
+## Code Quality
 
 ### Code Style
 
@@ -237,7 +237,7 @@ cargo audit
 5. **Update documentation**: Update relevant docs
 6. **Submit PR**: Include detailed description and benchmark results
 
-## 🔍 Performance Guidelines
+## Performance Guidelines
 
 ### Zero-Allocation Principles
 
@@ -260,7 +260,7 @@ cargo audit
 3. **Memory leaks**: Ensure proper cleanup in long-running scenarios
 4. **Over-engineering**: Keep solutions simple and maintainable
 
-## 📊 Monitoring Performance
+## Monitoring Performance
 
 ### Development Workflow
 
@@ -288,7 +288,7 @@ jobs:
       - run: cargo run --bin berry-bench-bin -- --all
 ```
 
-## 🐛 Debugging
+## Debugging
 
 ### Common Issues
 
@@ -311,14 +311,14 @@ cargo flamegraph --bench parser_benchmarks
 cargo run --bin berry-bench-bin -- -f large-fixture.lock -v
 ```
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Task List](.cursor/tasks/BERRY_LOCKFILE_PARSER.md) - Detailed development progress
 - [Benchmarking Plan](.cursor/tasks/BENCHMARKING_PLAN.md) - Comprehensive benchmarking strategy
 - [Nom Documentation](https://docs.rs/nom/) - Parser combinator library
 - [Criterion Documentation](https://docs.rs/criterion/) - Benchmarking framework
 
-## 🤝 Getting Help
+## Getting Help
 
 - **Issues**: Use GitHub issues for bugs and feature requests
 - **Discussions**: Use GitHub discussions for questions and ideas
