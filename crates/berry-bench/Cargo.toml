@@ -6,6 +6,8 @@ name                 = "berry-bench"
 repository.workspace = true
 version.workspace    = true
 
+publish = false
+
 [dependencies]
 berry-core   = { workspace = true }
 berry-test   = { workspace = true }

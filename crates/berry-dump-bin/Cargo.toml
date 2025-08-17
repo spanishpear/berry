@@ -6,6 +6,8 @@ name                 = "berry-dump-bin"
 repository.workspace = true
 version.workspace    = true
 
+publish = false
+
 [dependencies]
 berry-core = { workspace = true }
 clap       = { workspace = true }
