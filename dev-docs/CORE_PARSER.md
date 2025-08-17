@@ -216,7 +216,7 @@ fn parse_property_line(input: &str) -> IResult<&str, PropertyValue<'_>> {
 ### Basic Parsing
 
 ```rust
-use berry_core::parse::parse_lockfile;
+use berry::parse::parse_lockfile;
 
 let content = r#"
 __metadata:

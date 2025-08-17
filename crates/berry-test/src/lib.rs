@@ -39,7 +39,7 @@ pub fn load_fixture_from_path(fixture_path: &Path) -> String {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use berry_core::parse::parse_lockfile;
+  use berry::parse::parse_lockfile;
   use rstest::rstest;
   use std::path::PathBuf;
 

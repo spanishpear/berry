@@ -3,9 +3,9 @@ authors.workspace    = true
 categories.workspace = true
 edition.workspace    = true
 license.workspace    = true
-name                 = "berry-core"
+name                 = "berry"
 repository.workspace = true
-version              = "0.2.0"
+version              = "0.3.0"
 
 [dependencies]
 nom = { workspace = true }

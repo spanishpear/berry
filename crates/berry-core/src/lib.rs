@@ -1,7 +1,10 @@
 //! # Berry
 //!
 //! Berry is a library for parsing and manipulating Berry lockfiles.
-//! It's still super WIP - still trying to figure out if i use `berry-core` or `berry` on crates.io
+//! It's still super WIP
+//! ----
+//! This project is not affiliated with Yarn or the Yarn team, but is a personal project
+//! for my own learning and interest!
 #![deny(clippy::all)]
 pub mod ident;
 pub mod locator;

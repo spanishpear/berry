@@ -1,4 +1,4 @@
-use berry_core::parse::parse_lockfile;
+use berry::parse::parse_lockfile;
 use berry_test::load_fixture;
 use criterion::{Criterion, criterion_group, criterion_main};
 use memory_stats::memory_stats;

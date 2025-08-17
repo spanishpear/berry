@@ -1,4 +1,4 @@
-use berry_core::parse::parse_lockfile;
+use berry::parse::parse_lockfile;
 use clap::Parser;
 use std::path::PathBuf;
 

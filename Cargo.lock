@@ -74,10 +74,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
-name = "berry-bench"
-version = "0.2.0"
+name = "berry"
+version = "0.3.0"
 dependencies = [
- "berry-core",
+ "nom",
+]
+
+[[package]]
+name = "berry-bench"
+version = "0.3.0"
+dependencies = [
+ "berry",
  "berry-test",
  "criterion",
  "memory-stats",
@@ -85,9 +92,9 @@ dependencies = [
 
 [[package]]
 name = "berry-bench-bin"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
- "berry-core",
+ "berry",
  "berry-test",
  "clap",
  "memory-stats",
@@ -96,17 +103,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "berry-core"
-version = "0.2.0"
-dependencies = [
- "nom",
-]
-
-[[package]]
 name = "berry-dump-bin"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
- "berry-core",
+ "berry",
  "clap",
 ]
 
@@ -114,7 +114,7 @@ dependencies = [
 name = "berry-node-bindings"
 version = "0.0.0"
 dependencies = [
- "berry-core",
+ "berry",
  "napi",
  "napi-build",
  "napi-derive",
@@ -122,9 +122,9 @@ dependencies = [
 
 [[package]]
 name = "berry-test"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
- "berry-core",
+ "berry",
  "rstest",
 ]
 
@@ -466,7 +466,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.53.3",
 ]
 
 [[package]]

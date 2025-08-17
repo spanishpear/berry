@@ -9,7 +9,7 @@ version.workspace    = true
 publish = false
 
 [dependencies]
-berry-core   = { workspace = true }
+berry        = { workspace = true }
 berry-test   = { workspace = true }
 clap         = { workspace = true }
 memory-stats = { workspace = true }

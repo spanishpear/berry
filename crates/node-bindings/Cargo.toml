@@ -11,9 +11,9 @@ repository.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-berry-core  = { path = "../berry-core" }
+berry       = { workspace = true }
 napi        = { workspace = true }
 napi-derive = { workspace = true }
 
 [build-dependencies]
-napi-build = "2.2.3"
+napi-build = { workspace = true }
