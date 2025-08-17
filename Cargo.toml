@@ -3,11 +3,11 @@ members  = ["crates/*"]
 resolver = "2"
 
   [workspace.package]
-  authors    = ["Shrey Somaiya"]
-  categories = ["parsing", "parser-implementations"]
-  # description = "A simple yarn berry lockfile parser"
-  edition = "2024"
-  version = "0.4.0"
+  authors     = ["Shrey Somaiya"]
+  categories  = ["parsing", "parser-implementations"]
+  description = "A simple yarn berry lockfile parser"
+  edition     = "2024"
+  version     = "0.4.0"
   # keywords = [
   #   "yarn",
   #   "berry",
