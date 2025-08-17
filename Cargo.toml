@@ -18,10 +18,8 @@ resolver = "2"
   #   "napi",
   #   "n-api",
   # ]
-  license = "MIT OR Apache-2.0"
-  # name = "berry"
+  license    = "MIT OR Apache-2.0"
   repository = "https://github.com/spanishpear/berry"
-  # version = "0.1.0"
 
   [workspace.dependencies]
   berry-core = { path = "crates/berry-core" }
