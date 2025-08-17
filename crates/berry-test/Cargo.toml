@@ -8,7 +8,6 @@ version.workspace    = true
 
 [dependencies]
 berry-core = { workspace = true }
-rstest     = { workspace = true }
 
 [dev-dependencies]
 rstest = { workspace = true }

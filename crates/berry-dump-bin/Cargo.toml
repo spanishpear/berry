@@ -7,6 +7,5 @@ repository.workspace = true
 version.workspace    = true
 
 [dependencies]
-berry-core = { path = "../berry-core" }
-berry-test = { path = "../berry-test" }
+berry-core = { workspace = true }
 clap       = { workspace = true }

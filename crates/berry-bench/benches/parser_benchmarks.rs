@@ -1,8 +1,9 @@
 use berry_core::parse::parse_lockfile;
 use berry_test::load_fixture;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use memory_stats::memory_stats;
 use std::fs;
+use std::hint::black_box;
 use std::path::Path;
 use std::time::Instant;
 

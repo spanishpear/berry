@@ -107,7 +107,6 @@ name = "berry-dump-bin"
 version = "0.1.0"
 dependencies = [
  "berry-core",
- "berry-test",
  "clap",
 ]
 
